@@ -11,7 +11,7 @@ public interface CadastrarFichaSaudeUseCase {
             UUID alunoId,
             String nome,
             String observacoes,
-            List<ArquivoUpload> arquivo
+            List<ArquivoUpload> arquivos
     ) {}
 
     record ArquivoUpload(
