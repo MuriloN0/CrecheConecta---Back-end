@@ -12,7 +12,7 @@ public record AlunoResponse(
         String emailContato,
         String telefoneContato,
         boolean ativo,
-        String versao,
+        Long versao,
         List<ResponsavelResponse> responsaveis
 ) {
     public static AlunoResponse de(Aluno aluno) {

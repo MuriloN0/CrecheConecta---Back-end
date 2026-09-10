@@ -9,7 +9,7 @@ import com.crecheconecta.escolar.application.port.out.AlunoRepositoryPort;
 import com.crecheconecta.escolar.domain.model.Aluno;
 import com.crecheconecta.escolar.domain.model.ContatoResponsavel;
 import com.crecheconecta.escolar.domain.model.DadosAluno;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -34,7 +34,7 @@ public class AlunoPersistenceAdapter implements AlunoRepositoryPort {
             alunoJpaEntity.setId(aluno.id());
         } else {
             alunoJpaEntity = repository.findById(aluno.id())
-                    .orElseThrow();
+                    .orElseThrow(AlunoNaoEncontradoException::new);
             if(!Objects.equals(alunoJpaEntity.getVersao(), aluno.versao())){
                 throw new ConflitoVersaoException();
             }
@@ -48,13 +48,13 @@ public class AlunoPersistenceAdapter implements AlunoRepositoryPort {
     }
 
     @Override
-    @Transactional()
+    @Transactional(readOnly = true)
     public Optional<Aluno> buscarPorId(UUID id) {
         return repository.findById(id).map(this::paraDominio);
     }
 
     @Override
-    @Transactional()
+    @Transactional(readOnly = true)
     public Pagina<ResumoAluno> listar(int pagina, int tamanho) {
         var pageable = PageRequest.of(
                 pagina,
@@ -78,7 +78,7 @@ public class AlunoPersistenceAdapter implements AlunoRepositoryPort {
                 itens,
                 resultado.getNumber(),
                 resultado.getSize(),
-                (int) resultado.getTotalElements(),
+                resultado.getTotalElements(),
                 resultado.getTotalPages()
         );
     }
@@ -131,5 +131,4 @@ public class AlunoPersistenceAdapter implements AlunoRepositoryPort {
                 alunoJpaEntity.getVersao()
         );
     }
-
 }

@@ -16,9 +16,9 @@ import java.util.Objects;
 import java.util.UUID;
 
 @RequiredArgsConstructor
-@Service
 public class AlunoService implements GerenciarAlunoUseCase {
     private final AlunoRepositoryPort alunoRepositoryPort;
+
 
     @Override
     public Aluno cadastrar(DadosAluno dadosAluno) {
@@ -38,7 +38,7 @@ public class AlunoService implements GerenciarAlunoUseCase {
     @Override
     public Pagina<ResumoAluno> listar(int pagina, int tamanho){
         if (pagina < 0 || tamanho < 1 || tamanho > 50){
-            throw new RegraNegocioException("A página deve ser maior que zero.");
+            throw new RegraNegocioException("Página deve ser maior ou igual a zero e tamanho deve estar entre 1 e 50.");
         }
         return alunoRepositoryPort.listar(pagina, tamanho);
     }

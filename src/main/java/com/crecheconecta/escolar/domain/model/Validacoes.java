@@ -29,13 +29,13 @@ final class Validacoes {
 
         if (normalizado.length() > tamanhoMaximo){
             throw new RegraNegocioException(
-              campo + "deve ter até" + tamanhoMaximo + " caracteres"
+                    campo + "deve ter até" + tamanhoMaximo + " caracteres"
             );
         }
         return normalizado;
     }
 
-   public static String email(String valor, boolean obrigatorio){
+    public static String email(String valor, boolean obrigatorio){
         String normalizado = textoOpcional(valor, "E-mail", 254);
 
         if(normalizado == null){
@@ -47,7 +47,7 @@ final class Validacoes {
 
         normalizado = normalizado.toLowerCase(Locale.ROOT);
 
-        if (Email.matcher(normalizado).matches()){
+        if (!Email.matcher(normalizado).matches()){
             throw new RegraNegocioException("E-mail inválido");
         }
 
@@ -66,6 +66,4 @@ final class Validacoes {
         }
         return normalizado;
     }
-
-
 }

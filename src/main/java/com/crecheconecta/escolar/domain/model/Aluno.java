@@ -4,14 +4,14 @@ import com.crecheconecta.escolar.domain.exception.RegraNegocioException;
 
 import java.util.UUID;
 
-public record Aluno(UUID id, DadosAluno dadosAluno, boolean ativo, String versao) {
+public record Aluno(UUID id, DadosAluno dadosAluno, boolean ativo, Long versao) {
 
     public Aluno {
         if(id == null || dadosAluno == null) {
             throw new RegraNegocioException("Identificador e dados do aluno são obrigatórios.");
         }
 
-        if(versao != null && versao <= 0) {
+        if(versao != null && versao < 0) {
             throw new RegraNegocioException("Versão inválida.");
         }
     }

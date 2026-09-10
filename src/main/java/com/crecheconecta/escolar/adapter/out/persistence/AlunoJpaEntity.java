@@ -33,7 +33,7 @@ public class AlunoJpaEntity {
 
     @Version
     @Column(name = "versao", nullable = false)
-    private String versao;
+    private Long versao;
 
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
@@ -43,10 +43,6 @@ public class AlunoJpaEntity {
     @OrderColumn(name = "ordem")
     private List<ContatoResponsavelEmbeddable> responsaveis = new ArrayList<>();
 
-    public void setAtivo(boolean ativo) {
-
-    }
-
-    public boolean isAtivo() {
-    }
+    @Column(name = "ativo", nullable = false)
+    private boolean ativo;
 }

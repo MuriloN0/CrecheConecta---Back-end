@@ -4,10 +4,10 @@ import com.crecheconecta.escolar.domain.exception.RegraNegocioException;
 
 import java.util.List;
 
-public record DadosAluno(String nome, String emailContato, String telefoneContato, String endereco, List<ContatoResponsavel> responsaveis) {
+public record DadosAluno(String nome, String endereco, String emailContato, String telefoneContato, List<ContatoResponsavel> responsaveis) {
     public DadosAluno {
         nome = Validacoes.textoObrigatorio(nome, "Nome do aluno", 150);
-        endereco = Validacoes.textoObrigatorio(endereco, "ENdereço", 300);
+        endereco = Validacoes.textoOpcional(endereco, "Endereço", 300);
         emailContato = Validacoes.email(emailContato, true);
         telefoneContato = Validacoes.telefone(telefoneContato);
 
