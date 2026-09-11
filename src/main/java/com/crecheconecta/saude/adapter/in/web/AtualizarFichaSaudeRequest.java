@@ -12,5 +12,6 @@ public record AtualizarFichaSaudeRequest(
         List<UUID> anexoMantidos
 ){
     public List<UUID> anexosMantidos() {
+        return null;
     }
 }
