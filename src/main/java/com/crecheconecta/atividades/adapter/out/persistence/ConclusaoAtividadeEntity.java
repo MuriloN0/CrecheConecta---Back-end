@@ -11,22 +11,20 @@ import java.util.UUID;
 public class ConclusaoAtividadeEntity {
 
     @Id
-    private UUID id;
+    private final UUID id;
 
     @Column(nullable = false)
-    private UUID atividadeId;
+    private final UUID atividadeId;
 
     @Column(nullable = false)
-    private UUID alunoId;
+    private final UUID alunoId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private StatusConclusao status;
+    private final StatusConclusao status;
 
     @Column
-    private Instant marcadaEm;
-
-    protected ConclusaoAtividadeEntity() {}
+    private final Instant marcadaEm;
 
     public ConclusaoAtividadeEntity(ConclusaoAtividade conclusao) {
         this.id = conclusao.id();

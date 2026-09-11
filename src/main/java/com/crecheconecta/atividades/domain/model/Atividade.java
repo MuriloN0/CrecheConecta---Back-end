@@ -34,6 +34,7 @@ public record Atividade(
             throw new IllegalArgumentException("Prazo de conclusão é obrigatório para atividade de casa");
         }
     }
+
     public Atividade atualizar(TipoAtividade novoTipo, String novoTitulo, String novaDescricao, LocalDate novoPrazo) {
         return new Atividade(
                 this.id(),

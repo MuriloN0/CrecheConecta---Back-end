@@ -18,14 +18,13 @@ public class AtividadeController {
 
     private final AtividadeUseCase atividadeUseCase;
 
-    // Apenas uma injeção de dependência!
     public AtividadeController(AtividadeUseCase atividadeUseCase) {
         this.atividadeUseCase = atividadeUseCase;
     }
 
     @PostMapping
     public ResponseEntity<Void> criar(
-            @RequestHeader(value = "X-Turma-Id", required = true) UUID turmaId,
+            @RequestHeader(value = "turmaUUID", required = true) UUID turmaId,
             @Valid @RequestBody NovaAtividadeRequestDTO request
     ) {
         UUID atividadeId = atividadeUseCase.criar(
@@ -65,7 +64,7 @@ public class AtividadeController {
 
     @GetMapping
     public ResponseEntity<List<AtividadeResponseDTO>> listarTodas(
-            @RequestHeader(value = "X-Turma-Id", required = false) UUID turmaId
+            @RequestHeader(value = "turmaUUID", required = false) UUID turmaId
     ) {
         List<AtividadeResponseDTO> atividades = atividadeUseCase.listar(turmaId)
                 .stream()
