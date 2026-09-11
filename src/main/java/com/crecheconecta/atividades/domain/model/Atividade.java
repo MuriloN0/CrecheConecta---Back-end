@@ -34,4 +34,16 @@ public record Atividade(
             throw new IllegalArgumentException("Prazo de conclusão é obrigatório para atividade de casa");
         }
     }
+    public Atividade atualizar(TipoAtividade novoTipo, String novoTitulo, String novaDescricao, LocalDate novoPrazo) {
+        return new Atividade(
+                this.id(),
+                this.turmaId(),
+                this.professorId(),
+                novoTipo != null ? novoTipo : this.tipo(),
+                novoTitulo != null ? novoTitulo : this.titulo(),
+                novaDescricao != null ? novaDescricao : this.descricao(),
+                this.dataCriacao(),
+                novoPrazo != null ? novoPrazo : this.prazoConclusao()
+        );
+    }
 }
