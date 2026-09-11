@@ -49,7 +49,6 @@ public class AtividadeEntity {
         this.prazoConclusao = atividade.prazoConclusao();
     }
 
-    // Método para converter do JPA de volta para o Domínio
     public Atividade toDomain() {
         return new Atividade(
                 this.id,

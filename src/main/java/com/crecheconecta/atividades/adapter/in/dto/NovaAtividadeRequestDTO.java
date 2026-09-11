@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public record NovaAtividadeRequestDTO(
         @NotNull(message = "O ID do professor é obrigatório (Temporário)")
-        UUID professorId, // Adicionado temporariamente até o login existir
+        UUID professorId,
 
         @NotNull(message = "O tipo da atividade é obrigatório")
         TipoAtividade tipo,
