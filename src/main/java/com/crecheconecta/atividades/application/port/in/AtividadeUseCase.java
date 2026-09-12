@@ -12,7 +12,7 @@ public interface AtividadeUseCase {
     void atualizar(UUID id, ComandoAtualizar comando);
     void deletar(UUID id);
     Atividade buscarPorId(UUID id);
-    List<Atividade> listar(UUID turmaId);
+    List<Atividade> listar(UUID turmaId, TipoAtividade tipo);
 
     record ComandoCriar(
             UUID turmaId,

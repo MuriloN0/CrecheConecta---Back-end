@@ -3,6 +3,7 @@ package com.crecheconecta.atividades.application.service;
 import com.crecheconecta.atividades.application.port.in.AtividadeUseCase;
 import com.crecheconecta.atividades.application.port.out.AtividadeRepository;
 import com.crecheconecta.atividades.domain.model.Atividade;
+import com.crecheconecta.atividades.domain.model.TipoAtividade;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -62,10 +63,7 @@ public class AtividadeService implements AtividadeUseCase {
     }
 
     @Override
-    public List<Atividade> listar(UUID turmaId) {
-        if (turmaId != null) {
-            return repository.buscarPorTurma(turmaId);
-        }
-        return repository.buscarTodas();
+    public List<Atividade> listar(UUID turmaId, TipoAtividade tipo) {
+        return repository.buscarFiltrado(turmaId, tipo);
     }
 }

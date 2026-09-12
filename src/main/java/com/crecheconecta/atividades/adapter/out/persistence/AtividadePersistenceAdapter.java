@@ -2,6 +2,7 @@ package com.crecheconecta.atividades.adapter.out.persistence;
 
 import com.crecheconecta.atividades.application.port.out.AtividadeRepository;
 import com.crecheconecta.atividades.domain.model.Atividade;
+import com.crecheconecta.atividades.domain.model.TipoAtividade;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -38,15 +39,20 @@ public class AtividadePersistenceAdapter implements AtividadeRepository {
     }
 
     @Override
-    public List<Atividade> buscarTodas() {
-        return jpaRepository.findAll().stream()
-                .map(AtividadeEntity::toDomain)
-                .toList();
-    }
+    public List<Atividade> buscarFiltrado(UUID turmaId, TipoAtividade tipo) {
+        List<AtividadeEntity> entities;
 
-    @Override
-    public List<Atividade> buscarPorTurma(UUID turmaId) {
-        return jpaRepository.findByTurmaId(turmaId).stream()
+        if (turmaId != null && tipo != null) {
+            entities = jpaRepository.findByTurmaIdAndTipo(turmaId, tipo);
+        } else if (turmaId != null) {
+            entities = jpaRepository.findByTurmaId(turmaId);
+        } else if (tipo != null) {
+            entities = jpaRepository.findByTipo(tipo);
+        } else {
+            entities = jpaRepository.findAll();
+        }
+
+        return entities.stream()
                 .map(AtividadeEntity::toDomain)
                 .toList();
     }

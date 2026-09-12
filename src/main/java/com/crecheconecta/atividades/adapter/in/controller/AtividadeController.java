@@ -4,6 +4,7 @@ import com.crecheconecta.atividades.adapter.in.dto.AtividadeResponseDTO;
 import com.crecheconecta.atividades.adapter.in.dto.AtualizarAtividadeRequestDTO;
 import com.crecheconecta.atividades.adapter.in.dto.NovaAtividadeRequestDTO;
 import com.crecheconecta.atividades.application.port.in.AtividadeUseCase;
+import com.crecheconecta.atividades.domain.model.TipoAtividade;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -64,13 +65,13 @@ public class AtividadeController {
 
     @GetMapping
     public ResponseEntity<List<AtividadeResponseDTO>> listarTodas(
-            @RequestHeader(value = "turmaUUID", required = false) UUID turmaId
+            @RequestHeader(value = "turmaUUID", required = false) UUID turmaId,
+            @RequestParam(value = "tipo", required = false) TipoAtividade tipo
     ) {
-        List<AtividadeResponseDTO> atividades = atividadeUseCase.listar(turmaId)
+        List<AtividadeResponseDTO> atividades = atividadeUseCase.listar(turmaId, tipo)
                 .stream()
                 .map(AtividadeResponseDTO::fromDomain)
                 .toList();
-
         return ResponseEntity.ok(atividades);
     }
 
