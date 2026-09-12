@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/alunos/{alunosId}/fichas-saude")
+@RequestMapping("/api/alunos/{alunoId}/fichas-saude")
 public class FichaSaudeController {
     private final CadastrarFichaSaudeUseCase cadastrar;
     private final ListarFichasSaudeUseCase listar;
