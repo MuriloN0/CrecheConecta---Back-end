@@ -1,0 +1,11 @@
+# MODELO de configuracao local. Copie este arquivo para
+# application-local.properties e preencha com seus valores.
+# NUNCA commite o application-local.properties (ele esta no .gitignore).
+spring.datasource.url=jdbc:postgresql://localhost:5432/crecheconecta
+spring.datasource.username=postgres
+spring.datasource.password=SUA_SENHA_LOCAL_AQUI
+spring.jpa.hibernate.ddl-auto=validate
+spring.flyway.enabled=true
+
+# Chave AES-256 em Base64. Gere a sua com: openssl rand -base64 32
+saude.criptografia.chave=GERE_UMA_CHAVE_BASE64_AQUI
