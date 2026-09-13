@@ -21,8 +21,6 @@ import java.util.UUID;
 @RestControllerAdvice
 public class WebExceptionHandler {
 
-    // ===== Modulo escolar (aluno) =====
-
     @ExceptionHandler(AlunoNaoEncontradoException.class)
     public ProblemDetail naoEncontrado(AlunoNaoEncontradoException exception) {
         return problema(
@@ -53,8 +51,6 @@ public class WebExceptionHandler {
         );
     }
 
-    // ===== Modulo saude (ficha de saude) =====
-
     @ExceptionHandler(AcessoNegadoException.class)
     public ProblemDetail acessoNegado(AcessoNegadoException exception) {
         return problema(
@@ -81,8 +77,6 @@ public class WebExceptionHandler {
                 exception.getMessage()
         );
     }
-
-    // ===== Compartilhados =====
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail validacao(MethodArgumentNotValidException exception) {
