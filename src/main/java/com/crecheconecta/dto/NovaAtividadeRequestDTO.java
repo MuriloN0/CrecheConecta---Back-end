@@ -1,14 +1,15 @@
-package com.crecheconecta.atividades.adapter.in.dto;
+package com.crecheconecta.dto;
 
-import com.crecheconecta.atividades.domain.model.TipoAtividade;
+import com.crecheconecta.model.TipoAtividade;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
 import java.time.LocalDate;
 import java.util.UUID;
 
 public record NovaAtividadeRequestDTO(
-        @NotNull(message = "O ID do professor é obrigatório (Temporário)")
+        @NotNull(message = "O ID do professor é obrigatório")
         UUID professorId,
 
         @NotNull(message = "O tipo da atividade é obrigatório")
@@ -21,4 +22,5 @@ public record NovaAtividadeRequestDTO(
         String descricao,
 
         LocalDate prazoConclusao
-) {}
+) {
+}

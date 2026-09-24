@@ -1,5 +1,6 @@
 package com.crecheconecta.configuration;
 
+import com.crecheconecta.exception.AtividadeNaoEncontradaException;
 import com.crecheconecta.escolar.application.exception.AlunoNaoEncontradoException;
 import com.crecheconecta.escolar.application.exception.ConflitoVersaoException;
 import com.crecheconecta.escolar.domain.exception.RegraNegocioException;
@@ -20,6 +21,15 @@ import java.util.UUID;
 
 @RestControllerAdvice
 public class WebExceptionHandler {
+
+    @ExceptionHandler(AtividadeNaoEncontradaException.class)
+    public ProblemDetail atividadeNaoEncontrada(AtividadeNaoEncontradaException exception) {
+        return problema(
+                HttpStatus.NOT_FOUND,
+                "Atividade não encontrada",
+                exception.getMessage()
+        );
+    }
 
     @ExceptionHandler(AlunoNaoEncontradoException.class)
     public ProblemDetail naoEncontrado(AlunoNaoEncontradoException exception) {

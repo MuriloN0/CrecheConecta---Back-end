@@ -1,7 +1,8 @@
-package com.crecheconecta.atividades.adapter.in.dto;
+package com.crecheconecta.dto;
 
-import com.crecheconecta.atividades.domain.model.TipoAtividade;
+import com.crecheconecta.model.TipoAtividade;
 import jakarta.validation.constraints.Size;
+
 import java.time.LocalDate;
 
 public record AtualizarAtividadeRequestDTO(
@@ -10,4 +11,5 @@ public record AtualizarAtividadeRequestDTO(
         String titulo,
         String descricao,
         LocalDate prazoConclusao
-) {}
+) {
+}

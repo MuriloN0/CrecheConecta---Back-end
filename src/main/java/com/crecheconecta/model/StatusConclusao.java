@@ -1,4 +1,4 @@
-package com.crecheconecta.atividades.domain.model;
+package com.crecheconecta.model;
 
 public enum StatusConclusao {
     PENDENTE,
