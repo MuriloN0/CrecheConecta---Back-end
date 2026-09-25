@@ -31,7 +31,10 @@ public class SecurityConfig {
                         .ignoringRequestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/confirmar-login",
-                                "/api/auth/logout"
+                                "/api/auth/logout",
+                                "/api/auth/esqueci-senha",
+                                "/api/auth/confirmar-recuperacao",
+                                "/api/auth/redefinir-senha"
                         )
                 )
                 .sessionManagement(session -> session
@@ -49,7 +52,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/auth/login",
-                                "/api/auth/confirmar-login"
+                                "/api/auth/confirmar-login",
+                                "/api/auth/esqueci-senha",
+                                "/api/auth/confirmar-recuperacao",
+                                "/api/auth/redefinir-senha"
                         )
                         .permitAll()
                         .requestMatchers(

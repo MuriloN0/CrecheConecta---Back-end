@@ -19,6 +19,17 @@ public enum ErroAutenticacao {
             "Limite de tentativas atingido. Tente novamente mais tarde."
     ),
 
+    SENHA_INVALIDA(
+            HttpStatus.BAD_REQUEST,
+            "A senha deve ter pelo menos 12 caracteres "
+                    + "e no máximo 72 bytes em UTF-8."
+    ),
+
+    SENHAS_DIFERENTES(
+            HttpStatus.BAD_REQUEST,
+            "A nova senha e a confirmação devem ser iguais."
+    ),
+
     ENVIO_EMAIL_INDISPONIVEL(
             HttpStatus.SERVICE_UNAVAILABLE,
             "Não foi possível enviar o e-mail. Tente novamente mais tarde."

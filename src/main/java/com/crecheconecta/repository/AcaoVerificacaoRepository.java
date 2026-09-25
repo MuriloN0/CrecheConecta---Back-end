@@ -64,4 +64,10 @@ public interface AcaoVerificacaoRepository extends JpaRepository<AcaoVerificacao
             @Param("finalidade") FinalidadeAcao finalidade,
             @Param("desde") Instant desde
     );
+
+    long countByUsuario_IdAndFinalidadeAndCriadoEmGreaterThanEqual(
+            UUID usuarioId,
+            FinalidadeAcao finalidade,
+            Instant desde
+    );
 }

@@ -30,6 +30,9 @@ public class AutenticacaoTokenFilter extends OncePerRequestFilter {
                 && (
                 "/api/auth/login".equals(caminho)
                         || "/api/auth/confirmar-login".equals(caminho)
+                        || "/api/auth/esqueci-senha".equals(caminho)
+                        || "/api/auth/confirmar-recuperacao".equals(caminho)
+                        || "/api/auth/redefinir-senha".equals(caminho)
         );
     }
 

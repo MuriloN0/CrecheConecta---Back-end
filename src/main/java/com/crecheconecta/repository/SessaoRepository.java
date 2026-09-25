@@ -28,5 +28,17 @@ public interface SessaoRepository extends JpaRepository<Sessao, UUID> {
             @Param("agora") Instant agora
     );
 
+    @Modifying(flushAutomatically = true)
+    @Query("""
+    UPDATE Sessao s
+    SET s.revogadoEm = :agora
+    WHERE s.usuario.id = :usuarioId
+      AND s.revogadoEm IS NULL
+    """)
+    int revogarTodasDoUsuario(
+            @Param("usuarioId") UUID usuarioId,
+            @Param("agora") Instant agora
+    );
+
 }
 
