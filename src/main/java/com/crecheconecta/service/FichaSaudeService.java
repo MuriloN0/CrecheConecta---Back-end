@@ -24,12 +24,17 @@ public class FichaSaudeService {
 
     private final FichaSaudeRepository repository;
     private final CriptografiaService cripto;
+    private final AuditoriaService auditoria;
     private final Clock clock;
 
     public FichaSaudeService(
-            FichaSaudeRepository repository, CriptografiaService cripto, Clock clock) {
+            FichaSaudeRepository repository,
+            CriptografiaService cripto,
+            AuditoriaService auditoria,
+            Clock clock) {
         this.repository = repository;
         this.cripto = cripto;
+        this.auditoria = auditoria;
         this.clock = clock;
     }
 
@@ -46,6 +51,7 @@ public class FichaSaudeService {
         ficha.setDataAtualizacao(agora);
 
         repository.save(ficha);
+        auditoria.aposCommit("FICHA_CADASTRADA", usuario.id(), ficha.getId());
         return ficha.getId();
     }
 
@@ -78,6 +84,7 @@ public class FichaSaudeService {
         ficha.setObservacoes(cripto.cifrar(dados.observacoes()));
         ficha.setDataAtualizacao(clock.instant());
 
+        auditoria.aposCommit("FICHA_EDITADA", usuario.id(), ficha.getId());
         String obs = cripto.decifrar(ficha.getObservacoes());
         return FichaSaudeResponse.de(ficha, obs);
     }
@@ -87,6 +94,7 @@ public class FichaSaudeService {
         exigirGestao(usuario);
         FichaSaude ficha = buscar(alunoId, fichaId);
         repository.delete(ficha);
+        auditoria.aposCommit("FICHA_EXCLUIDA", usuario.id(), fichaId);
     }
 
     // ============ auxiliares ============
