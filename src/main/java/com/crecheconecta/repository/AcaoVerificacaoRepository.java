@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 
 
 public interface AcaoVerificacaoRepository extends JpaRepository<AcaoVerificacao, UUID> {
@@ -40,5 +41,27 @@ public interface AcaoVerificacaoRepository extends JpaRepository<AcaoVerificacao
     Optional<AcaoVerificacao> findFirstByUsuario_IdAndFinalidadeOrderByCriadoEmDesc(
             UUID usuarioId,
             FinalidadeAcao finalidade
+    );
+
+    @Query("""
+    SELECT a.usuario.id
+    FROM AcaoVerificacao a
+    WHERE a.id = :acaoId
+    """)
+    Optional<UUID> buscarUsuarioId(
+            @Param("acaoId") UUID acaoId
+    );
+
+    @Query("""
+    SELECT COALESCE(SUM(a.tentativas), 0)
+    FROM AcaoVerificacao a
+    WHERE a.usuario.id = :usuarioId
+      AND a.finalidade = :finalidade
+      AND a.criadoEm >= :desde
+    """)
+    long somarTentativasDesde(
+            @Param("usuarioId") UUID usuarioId,
+            @Param("finalidade") FinalidadeAcao finalidade,
+            @Param("desde") Instant desde
     );
 }

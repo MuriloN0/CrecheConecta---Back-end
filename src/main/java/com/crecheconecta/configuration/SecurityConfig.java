@@ -1,25 +1,38 @@
 package com.crecheconecta.configuration;
 
-
+import com.crecheconecta.security.AutenticacaoTokenFilter;
+import com.crecheconecta.security.RespostaErroSeguranca;
+import com.crecheconecta.service.SessaoService;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import jakarta.servlet.DispatcherType;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(
-            HttpSecurity http
+            HttpSecurity http,
+            SessaoService sessaoService
     ) throws Exception {
+
+        var filtro = new AutenticacaoTokenFilter(sessaoService);
 
         http
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/api/auth/login")
+                        .ignoringRequestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/confirmar-login",
+                                "/api/auth/logout"
+                        )
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
@@ -35,50 +48,42 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/auth/login"
+                                "/api/auth/login",
+                                "/api/auth/confirmar-login"
                         )
                         .permitAll()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/auth/me"
+                        )
+                        .authenticated()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/auth/logout"
+                        )
+                        .authenticated()
                         .anyRequest()
                         .denyAll()
                 )
                 .exceptionHandling(errors -> errors
-                        .authenticationEntryPoint((request, response, ex) -> {
-                            response.setStatus(401);
-                            response.setContentType(
-                                    "application/problem+json"
-                            );
-                            response.setCharacterEncoding("UTF-8");
-
-                            response.getWriter().write("""
-                                    {
-                                      "type": "about:blank",
-                                      "title": "Unauthorized",
-                                      "status": 401,
-                                      "detail": "Autenticação necessária.",
-                                      "codigo": "NAO_AUTENTICADO"
-                                    }
-                                    """);
-                        })
-                        .accessDeniedHandler((request, response, ex) -> {
-                            response.setStatus(403);
-                            response.setContentType(
-                                    "application/problem+json"
-                            );
-                            response.setCharacterEncoding("UTF-8");
-
-                            response.getWriter().write("""
-                                    {
-                                      "type": "about:blank",
-                                      "title": "Forbidden",
-                                      "status": 403,
-                                      "detail": "Acesso negado.",
-                                      "codigo": "ACESSO_NEGADO"
-                                    }
-                                    """);
-                        })
+                        .authenticationEntryPoint(
+                                (request, response, exception) ->
+                                        RespostaErroSeguranca
+                                                .naoAutenticado(response)
+                        )
+                        .accessDeniedHandler(
+                                (request, response, exception) ->
+                                        RespostaErroSeguranca
+                                                .acessoNegado(response)
+                        )
+                )
+                .addFilterBefore(
+                        filtro,
+                        UsernamePasswordAuthenticationFilter.class
                 );
 
         return http.build();
     }
+
 
 }
