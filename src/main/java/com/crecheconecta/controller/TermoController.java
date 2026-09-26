@@ -32,7 +32,8 @@ public class TermoController {
         return new TermoStatusResponse(
                 service.precisaAceitar(usuario.id()),
                 service.versaoAtual(),
-                service.textoAtual());
+                service.termoUso(),
+                service.politicaPrivacidade());
     }
 
     @PostMapping("/aceite")

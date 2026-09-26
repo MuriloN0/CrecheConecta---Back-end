@@ -55,25 +55,26 @@ public class FichaSaudeService {
         return ficha.getId();
     }
 
-    // ---- LISTAR (resumo, sem observações) ----
     @Transactional(readOnly = true)
     public List<FichaSaudeResumoResponse> listar(UUID alunoId, UsuarioAtual usuario) {
         exigirAcessoLeitura(usuario, alunoId);
-        return repository.findByAlunoId(alunoId).stream()
-                .map(FichaSaudeResumoResponse::de)
-                .toList();
+        List<FichaSaudeResumoResponse> lista =
+                repository.findByAlunoId(alunoId).stream()
+                        .map(FichaSaudeResumoResponse::de)
+                        .toList();
+        auditoria.registrar("FICHAS_LISTADAS", usuario.id(), alunoId);
+        return lista;
     }
 
-    // ---- VISUALIZAR (detalhe, com observação decifrada) ----
     @Transactional(readOnly = true)
     public FichaSaudeResponse visualizar(UUID alunoId, UUID fichaId, UsuarioAtual usuario) {
         exigirAcessoLeitura(usuario, alunoId);
         FichaSaude ficha = buscar(alunoId, fichaId);
         String obs = cripto.decifrar(ficha.getObservacoes());
+        auditoria.registrar("FICHA_CONSULTADA", usuario.id(), fichaId);
         return FichaSaudeResponse.de(ficha, obs);
     }
 
-    // ---- ATUALIZAR ----
     public FichaSaudeResponse atualizar(
             UUID alunoId, UUID fichaId, DadosFichaSaude dados, Long versao, UsuarioAtual usuario) {
         exigirGestao(usuario);
@@ -89,7 +90,6 @@ public class FichaSaudeService {
         return FichaSaudeResponse.de(ficha, obs);
     }
 
-    // ---- EXCLUIR ----
     public void excluir(UUID alunoId, UUID fichaId, UsuarioAtual usuario) {
         exigirGestao(usuario);
         FichaSaude ficha = buscar(alunoId, fichaId);
@@ -97,7 +97,7 @@ public class FichaSaudeService {
         auditoria.aposCommit("FICHA_EXCLUIDA", usuario.id(), fichaId);
     }
 
-    // ============ auxiliares ============
+
 
     private FichaSaude buscar(UUID alunoId, UUID fichaId) {
         FichaSaude ficha =
