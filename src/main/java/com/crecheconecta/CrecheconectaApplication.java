@@ -6,10 +6,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
-public class CrecheconectaCamadasApplication {
+public class CrecheconectaApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(CrecheconectaCamadasApplication.class, args);
+        SpringApplication.run(CrecheconectaApplication.class, args);
     }
 
     @Bean

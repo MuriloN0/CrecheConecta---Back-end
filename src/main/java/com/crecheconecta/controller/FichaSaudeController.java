@@ -4,14 +4,15 @@ import com.crecheconecta.dto.AtualizarFichaSaudeRequest;
 import com.crecheconecta.dto.FichaSaudeRequest;
 import com.crecheconecta.dto.FichaSaudeResponse;
 import com.crecheconecta.dto.FichaSaudeResumoResponse;
-import com.crecheconecta.security.Perfil;
 import com.crecheconecta.security.UsuarioAtual;
+import com.crecheconecta.security.UsuarioAutenticado;
 import com.crecheconecta.service.FichaSaudeService;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,47 +32,77 @@ public class FichaSaudeController {
         this.service = service;
     }
 
-    private UsuarioAtual usuarioFake() {
-        return new UsuarioAtual(
-                UUID.fromString("22222222-2222-2222-2222-222222222222"), Perfil.DIRECAO);
-    }
-
-    // POST /api/alunos/{alunoId}/fichas-saude cadastra
     @PostMapping
     public ResponseEntity<Void> cadastrar(
-            @PathVariable UUID alunoId, @Valid @RequestBody FichaSaudeRequest dto) {
-        UUID id = service.cadastrar(alunoId, dto.paraDominio(), usuarioFake());
+            @PathVariable UUID alunoId,
+            @Valid @RequestBody FichaSaudeRequest dto,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado
+    ) {
+        var usuario = UsuarioAtual.de(autenticado);
+
+        UUID id = service.cadastrar(
+                alunoId,
+                dto.paraDominio(),
+                usuario
+        );
+
         return ResponseEntity.created(
-                URI.create("/api/alunos/" + alunoId + "/fichas-saude/" + id)).build();
+                URI.create("/api/alunos/" + alunoId + "/fichas-saude/" + id)
+        ).build();
     }
 
-    // GET  /api/alunos/{alunoId}/fichas-saude lista resumo
     @GetMapping
-    public List<FichaSaudeResumoResponse> listar(@PathVariable UUID alunoId) {
-        return service.listar(alunoId, usuarioFake());
+    public List<FichaSaudeResumoResponse> listar(
+            @PathVariable UUID alunoId,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado
+    ) {
+        return service.listar(
+                alunoId,
+                UsuarioAtual.de(autenticado)
+        );
     }
 
-    // GET  /api/alunos/{alunoId}/fichas-saude/{fichaId} detalhe
     @GetMapping("/{fichaId}")
     public FichaSaudeResponse visualizar(
-            @PathVariable UUID alunoId, @PathVariable UUID fichaId) {
-        return service.visualizar(alunoId, fichaId, usuarioFake());
+            @PathVariable UUID alunoId,
+            @PathVariable UUID fichaId,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado
+    ) {
+        return service.visualizar(
+                alunoId,
+                fichaId,
+                UsuarioAtual.de(autenticado)
+        );
     }
 
-    // PUT  /api/alunos/{alunoId}/fichas-saude/{fichaId}  edita
     @PutMapping("/{fichaId}")
     public FichaSaudeResponse atualizar(
             @PathVariable UUID alunoId,
             @PathVariable UUID fichaId,
-            @Valid @RequestBody AtualizarFichaSaudeRequest dto) {
-        return service.atualizar(alunoId, fichaId, dto.paraDominio(), dto.versao(), usuarioFake());
+            @Valid @RequestBody AtualizarFichaSaudeRequest dto,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado
+    ) {
+        return service.atualizar(
+                alunoId,
+                fichaId,
+                dto.paraDominio(),
+                dto.versao(),
+                UsuarioAtual.de(autenticado)
+        );
     }
 
-    // DELETE /api/alunos/{alunoId}/fichas-saude/{fichaId}  excluir
     @DeleteMapping("/{fichaId}")
     public ResponseEntity<Void> excluir(
-            @PathVariable UUID alunoId, @PathVariable UUID fichaId) {
-        service.excluir(alunoId, fichaId, usuarioFake());
+            @PathVariable UUID alunoId,
+            @PathVariable UUID fichaId,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado
+    ) {
+        service.excluir(
+                alunoId,
+                fichaId,
+                UsuarioAtual.de(autenticado)
+        );
+
         return ResponseEntity.noContent().build();
     }
 }
