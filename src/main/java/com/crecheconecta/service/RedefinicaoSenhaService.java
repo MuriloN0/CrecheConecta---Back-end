@@ -8,6 +8,8 @@ import com.crecheconecta.repository.AcaoVerificacaoRepository;
 import com.crecheconecta.repository.SessaoRepository;
 import com.crecheconecta.repository.UsuarioRepository;
 import com.crecheconecta.security.SegredoVerificacaoService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -20,11 +22,15 @@ import java.util.Objects;
 @Service
 public class RedefinicaoSenhaService {
 
+    private static final Logger log =
+            LoggerFactory.getLogger(RedefinicaoSenhaService.class);
+
     private final UsuarioRepository usuarios;
     private final AcaoVerificacaoRepository acoes;
     private final SessaoRepository sessoes;
     private final SegredoVerificacaoService segredos;
     private final PasswordEncoder encoder;
+    private final EmailService emailService;
     private final TransactionTemplate transacao;
 
     public RedefinicaoSenhaService(
@@ -33,6 +39,7 @@ public class RedefinicaoSenhaService {
             SessaoRepository sessoes,
             SegredoVerificacaoService segredos,
             PasswordEncoder encoder,
+            EmailService emailService,
             PlatformTransactionManager transactionManager
     ) {
         this.usuarios = usuarios;
@@ -40,6 +47,7 @@ public class RedefinicaoSenhaService {
         this.sessoes = sessoes;
         this.segredos = segredos;
         this.encoder = encoder;
+        this.emailService = emailService;
         this.transacao = new TransactionTemplate(transactionManager);
     }
 
@@ -50,6 +58,20 @@ public class RedefinicaoSenhaService {
 
         if (resultado.erro() != null) {
             throw new AutenticacaoException(resultado.erro());
+        }
+
+        try {
+            emailService.enviarAvisoSenhaAlterada(
+                    request.redefinicaoId(),
+                    resultado.email()
+            );
+        } catch (RuntimeException exception) {
+            log.error(
+                    "Senha alterada, mas o aviso por e-mail falhou. "
+                            + "redefinicaoId={}, tipo={}",
+                    request.redefinicaoId(),
+                    exception.getClass().getSimpleName()
+            );
         }
     }
 
@@ -120,12 +142,8 @@ public class RedefinicaoSenhaService {
         String novaSenha = request.novaSenha();
 
         if (novaSenha.isBlank()
-                || novaSenha.codePointCount(
-                0, novaSenha.length()
-        ) < 12
-                || novaSenha.getBytes(
-                StandardCharsets.UTF_8
-        ).length > 72) {
+                || novaSenha.codePointCount(0, novaSenha.length()) < 12
+                || novaSenha.getBytes(StandardCharsets.UTF_8).length > 72) {
             return falha(ErroAutenticacao.SENHA_INVALIDA);
         }
 
@@ -162,13 +180,20 @@ public class RedefinicaoSenhaService {
                 concluidoEm
         );
 
-        return new Resultado(null);
+        return new Resultado(null, usuario.getEmail());
     }
 
     private Resultado falha(ErroAutenticacao erro) {
-        return new Resultado(erro);
+        return new Resultado(erro, null);
     }
 
-    private record Resultado(ErroAutenticacao erro) {
+    private record Resultado(
+            ErroAutenticacao erro,
+            String email
+    ) {
+        @Override
+        public String toString() {
+            return "Resultado[dados omitidos]";
+        }
     }
 }

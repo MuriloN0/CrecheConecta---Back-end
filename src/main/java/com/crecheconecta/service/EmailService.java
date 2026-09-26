@@ -1,6 +1,5 @@
 package com.crecheconecta.service;
 
-
 import com.crecheconecta.entity.FinalidadeAcao;
 import com.crecheconecta.exception.AutenticacaoException;
 import com.crecheconecta.exception.ErroAutenticacao;
@@ -20,7 +19,6 @@ import java.util.UUID;
 @Service
 public class EmailService {
 
-
     private static final Logger log =
             LoggerFactory.getLogger(EmailService.class);
 
@@ -31,7 +29,7 @@ public class EmailService {
             @Qualifier("resendRestClient") RestClient resend,
             @Value("${app.email.resend.remetente}") String remetente
     ) {
-        if (remetente.isBlank()) {
+        if (remetente == null || remetente.isBlank()) {
             throw new IllegalStateException(
                     "RESEND_FROM deve estar configurado."
             );
@@ -48,13 +46,12 @@ public class EmailService {
             FinalidadeAcao finalidade
     ) {
         Objects.requireNonNull(acaoId, "A ação deve ser informada.");
-        Objects.requireNonNull(finalidade, "A finalidade deve ser informada.");
+        Objects.requireNonNull(
+                finalidade,
+                "A finalidade deve ser informada."
+        );
 
-        if (destinatario == null || destinatario.isBlank()) {
-            throw new IllegalArgumentException(
-                    "O destinatário deve ser informado."
-            );
-        }
+        validarDestinatario(destinatario);
 
         if (codigo == null || !codigo.matches("[0-9]{6}")) {
             throw new IllegalArgumentException(
@@ -85,20 +82,20 @@ public class EmailService {
         };
 
         String texto = """
-        Olá!
+                Olá!
 
-        Use o código abaixo para %s no CrecheConecta:
+                Use o código abaixo para %s no CrecheConecta:
 
-        %s
+                %s
 
-        O código possui validade limitada.
-        Confira o prazo informado na tela e utilize o código mais recente.
+                O código possui validade limitada.
+                Confira o prazo informado na tela e utilize o código mais recente.
 
-        Não compartilhe este código.
-        Se você não fez esta solicitação, ignore esta mensagem.
+                Não compartilhe este código.
+                Se você não fez esta solicitação, ignore esta mensagem.
 
-        Equipe CrecheConecta
-        """.formatted(finalidadeTexto, codigo);
+                Equipe CrecheConecta
+                """.formatted(finalidadeTexto, codigo);
 
         var requisicao = new EnviarEmailRequest(
                 remetente,
@@ -107,13 +104,63 @@ public class EmailService {
                 texto
         );
 
+        return enviar(
+                acaoId,
+                "acao-verificacao/" + acaoId,
+                requisicao
+        );
+    }
+
+    public String enviarAvisoSenhaAlterada(
+            UUID redefinicaoId,
+            String destinatario
+    ) {
+        Objects.requireNonNull(
+                redefinicaoId,
+                "A redefinição deve ser informada."
+        );
+
+        validarDestinatario(destinatario);
+
+        String texto = """
+                Olá!
+
+                A senha da sua conta no CrecheConecta foi alterada.
+
+                As sessões anteriores foram revogadas.
+                Para acessar novamente, entre com a nova senha
+                e confirme o código enviado por e-mail.
+
+                Se você não reconhece esta alteração, utilize
+                a opção "Esqueci minha senha" no CrecheConecta
+                e entre em contato com a direção da creche.
+
+                Equipe CrecheConecta
+                """;
+
+        var requisicao = new EnviarEmailRequest(
+                remetente,
+                List.of(destinatario),
+                "CrecheConecta - Sua senha foi alterada",
+                texto
+        );
+
+        return enviar(
+                redefinicaoId,
+                "senha-alterada/" + redefinicaoId,
+                requisicao
+        );
+    }
+
+    private String enviar(
+            UUID referenciaId,
+            String chaveIdempotencia,
+            EnviarEmailRequest requisicao
+    ) {
         try {
             var resposta = resend.post()
                     .uri("/emails")
-                    .header(
-                            "Idempotency-Key",
-                            "acao-verificacao/" + acaoId
-                    )
+                    .header("Idempotency-Key", chaveIdempotencia)
                     .body(requisicao)
                     .retrieve()
                     .body(EnviarEmailResponse.class);
@@ -121,18 +168,17 @@ public class EmailService {
             if (resposta == null
                     || resposta.id() == null
                     || resposta.id().isBlank()) {
-
                 log.warn(
-                        "Resend retornou resposta sem identificador. acaoId={}",
-                        acaoId
+                        "Resend retornou resposta sem identificador. referenciaId={}",
+                        referenciaId
                 );
 
                 throw envioIndisponivel();
             }
 
             log.info(
-                    "Resend aceitou o envio. acaoId={}, emailId={}",
-                    acaoId,
+                    "Resend aceitou o envio. referenciaId={}, emailId={}",
+                    referenciaId,
                     resposta.id()
             );
 
@@ -140,8 +186,8 @@ public class EmailService {
 
         } catch (RestClientResponseException exception) {
             log.warn(
-                    "Resend rejeitou o envio. acaoId={}, status={}",
-                    acaoId,
+                    "Resend rejeitou o envio. referenciaId={}, status={}",
+                    referenciaId,
                     exception.getStatusCode().value()
             );
 
@@ -149,12 +195,20 @@ public class EmailService {
 
         } catch (RestClientException exception) {
             log.warn(
-                    "Falha na comunicação com Resend. acaoId={}, tipo={}",
-                    acaoId,
+                    "Falha na comunicação com Resend. referenciaId={}, tipo={}",
+                    referenciaId,
                     exception.getClass().getSimpleName()
             );
 
             throw envioIndisponivel();
+        }
+    }
+
+    private void validarDestinatario(String destinatario) {
+        if (destinatario == null || destinatario.isBlank()) {
+            throw new IllegalArgumentException(
+                    "O destinatário deve ser informado."
+            );
         }
     }
 
@@ -170,6 +224,10 @@ public class EmailService {
             String subject,
             String text
     ) {
+        @Override
+        public String toString() {
+            return "EnviarEmailRequest[dados omitidos]";
+        }
     }
 
     public record EnviarEmailResponse(String id) {
