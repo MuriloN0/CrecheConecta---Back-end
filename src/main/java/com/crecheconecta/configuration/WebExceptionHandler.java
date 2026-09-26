@@ -1,12 +1,12 @@
 package com.crecheconecta.configuration;
 
 import com.crecheconecta.exception.AtividadeNaoEncontradaException;
-import com.crecheconecta.escolar.application.exception.AlunoNaoEncontradoException;
-import com.crecheconecta.escolar.application.exception.ConflitoVersaoException;
-import com.crecheconecta.escolar.domain.exception.RegraNegocioException;
-import com.crecheconecta.saude.application.exception.AcessoNegadoException;
-import com.crecheconecta.saude.application.exception.FichaSaudeInvalidaException;
-import com.crecheconecta.saude.application.exception.FichaSaudeNaoEncontradaException;
+//import com.crecheconecta.escolar.application.exception.AlunoNaoEncontradoException;
+//import com.crecheconecta.escolar.application.exception.ConflitoVersaoException;
+//import com.crecheconecta.escolar.domain.exception.RegraNegocioException;
+import com.crecheconecta.exception.AcessoNegadoException;
+//import com.crecheconecta.exception.FichaSaudeInvalidaException;
+import com.crecheconecta.exception.FichaSaudeNaoEncontradaException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -31,35 +31,35 @@ public class WebExceptionHandler {
         );
     }
 
-    @ExceptionHandler(AlunoNaoEncontradoException.class)
-    public ProblemDetail naoEncontrado(AlunoNaoEncontradoException exception) {
-        return problema(
-                HttpStatus.NOT_FOUND,
-                "Aluno não encontrado",
-                exception.getMessage()
-        );
-    }
-
-    @ExceptionHandler(RegraNegocioException.class)
-    public ProblemDetail regraNegocio(RegraNegocioException exception) {
-        return problema(
-                HttpStatus.UNPROCESSABLE_ENTITY,
-                "Regra de negócio",
-                exception.getMessage()
-        );
-    }
-
-    @ExceptionHandler({
-            ConflitoVersaoException.class,
-            OptimisticLockingFailureException.class
-    })
-    public ProblemDetail conflitoVersao(Exception exception) {
-        return problema(
-                HttpStatus.CONFLICT,
-                "Conflito de edição",
-                "O cadastro foi alterado. Recarregue os dados e tente novamente."
-        );
-    }
+//    @ExceptionHandler(AlunoNaoEncontradoException.class)
+//    public ProblemDetail naoEncontrado(AlunoNaoEncontradoException exception) {
+//        return problema(
+//                HttpStatus.NOT_FOUND,
+//                "Aluno não encontrado",
+//                exception.getMessage()
+//        );
+//    }
+//
+//    @ExceptionHandler(RegraNegocioException.class)
+//    public ProblemDetail regraNegocio(RegraNegocioException exception) {
+//        return problema(
+//                HttpStatus.UNPROCESSABLE_ENTITY,
+//                "Regra de negócio",
+//                exception.getMessage()
+//        );
+//    }
+//
+//    @ExceptionHandler({
+//            ConflitoVersaoException.class,
+//            OptimisticLockingFailureException.class
+//    })
+//    public ProblemDetail conflitoVersao(Exception exception) {
+//        return problema(
+//                HttpStatus.CONFLICT,
+//                "Conflito de edição",
+//                "O cadastro foi alterado. Recarregue os dados e tente novamente."
+//        );
+//    }
 
     @ExceptionHandler(AcessoNegadoException.class)
     public ProblemDetail acessoNegado(AcessoNegadoException exception) {
@@ -79,14 +79,14 @@ public class WebExceptionHandler {
         );
     }
 
-    @ExceptionHandler(FichaSaudeInvalidaException.class)
-    public ProblemDetail fichaInvalida(FichaSaudeInvalidaException exception) {
-        return problema(
-                HttpStatus.BAD_REQUEST,
-                "Ficha inválida",
-                exception.getMessage()
-        );
-    }
+//    @ExceptionHandler(FichaSaudeInvalidaException.class)
+//    public ProblemDetail fichaInvalida(FichaSaudeInvalidaException exception) {
+//        return problema(
+//                HttpStatus.BAD_REQUEST,
+//                "Ficha inválida",
+//                exception.getMessage()
+//        );
+//    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail validacao(MethodArgumentNotValidException exception) {
