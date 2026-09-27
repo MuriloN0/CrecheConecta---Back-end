@@ -10,30 +10,36 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class TermoService {
 
-    public static final String VERSAO_ATUAL = "2026-09-25-v1";
+    public static final String VERSAO_ATUAL = "2026-09-26-v2";
 
     private static final String TERMO_USO =
-            "Termos de Uso do CrecheConecta\n\n"
-                    + "1. Descricao e Finalidade do Servico\n"
-                    + "O CrecheConecta e uma plataforma digital desenvolvida para facilitar a comunicacao "
-                    + "e a troca de informacoes cotidianas entre instituicoes de educacao infantil e os "
-                    + "pais ou responsaveis legais das criancas.\n\n"
-                    + "2. Criacao e Protecao da Conta\n"
-                    + "O acesso ao sistema e pessoal e intransferivel. O responsavel compromete-se a "
-                    + "fornecer informacoes verdadeiras e exatas no momento do cadastro e a manter a "
-                    + "confidencialidade de sua senha, que e rigorosamente criptografada pelo sistema. "
-                    + "O usuario e integralmente responsavel por todas as atividades realizadas sob o seu login.\n\n"
-                    + "3. Condutas Proibidas\n"
-                    + "E estritamente proibido o uso da plataforma para fins ilegais, nao autorizados ou "
-                    + "que violem os direitos de terceiros. O usuario nao deve tentar acessar perfis de "
-                    + "outros alunos ou elevar seus privilegios de acesso dentro do sistema.\n\n"
-                    + "4. Suporte e Encerramento da Conta\n"
-                    + "O servico podera passar por manutencoes ou indisponibilidades temporarias. O "
-                    + "responsavel pode solicitar o encerramento da sua conta e o termino do vinculo com a "
-                    + "plataforma a qualquer momento, mediante solicitacao via e-mail de suporte. Apos a "
-                    + "solicitacao, os dados serao tratados conforme o plano de descarte estipulado na "
-                    + "Politica de Privacidade. Estes Termos nao retiram quaisquer direitos legais "
-                    + "garantidos aos titulares de dados.";
+            "Termos de Uso do CrecheConecta\n" +
+                    "\n" +
+                    "Descrição e Finalidade do Serviço\n" +
+                    "O CrecheConecta é uma plataforma digital desenvolvida para facilitar a comunicação e a troca de informações cotidianas entre instituições de educação infantil e os pais ou responsáveis legais das crianças.\n" +
+                    "\n" +
+                    "Criação e Proteção da Conta\n" +
+                    "O acesso ao sistema é pessoal e intransferível. O responsável compromete-se a fornecer informações verdadeiras e exatas no momento do cadastro e a manter a confidencialidade de sua senha, que é rigorosamente criptografada pelo sistema. O usuário é integralmente responsável por todas as atividades realizadas sob o seu login.\n" +
+                    "\n" +
+                    "Condutas Proibidas\n" +
+                    "É estritamente proibido o uso da plataforma para fins ilegais, não autorizados ou que violem os direitos de terceiros. O usuário não deve tentar acessar perfis de outros alunos ou elevar seus privilégios de acesso dentro do sistema.\n" +
+                    "\n" +
+                    "Suporte e Encerramento da Conta\n" +
+                    "O serviço poderá passar por manutenções ou indisponibilidades temporárias. O responsável pode solicitar o encerramento da sua conta e o término do vínculo com a plataforma a qualquer momento, mediante solicitação via e-mail de suporte. Após a solicitação, os dados serão tratados conforme o plano de descarte estipulado na Política de Privacidade. Estes Termos não retiram quaisquer direitos legais garantidos aos titulares de dados.\n" +
+                    "\n" +
+                    "Requisitos de Idade, Representação e Permissões\n" +
+                    "O uso e cadastro na plataforma são restritos a indivíduos maiores de 18 anos que sejam, comprovadamente, pais ou responsáveis legais das crianças matriculadas na instituição de ensino. O perfil de usuário fornecido limita-se às permissões de acesso da categoria \"Responsável\", garantindo a visualização exclusiva das informações e fichas de saúde apenas de seus próprios dependentes vinculados.\n" +
+                    "\n" +
+                    "Propriedade Intelectual e Conteúdo Enviado\n" +
+                    "Todo o conteúdo estrutural, design, códigos e marcas do aplicativo são de propriedade intelectual exclusiva do CrecheConecta. Quaisquer textos, mensagens ou documentos enviados pelo usuário permanecem sob sua responsabilidade e titularidade, sendo utilizados pelo sistema apenas para cumprir as funcionalidades contratadas de comunicação com a creche.\n" +
+                    "\n" +
+                    "Consequências do Uso Indevido e Legislação Aplicável\n" +
+                    "A violação de qualquer regra descrita nestes Termos, especialmente das condutas proibidas, poderá resultar no bloqueio temporário ou no encerramento definitivo da conta, sem prejuízo de outras sanções legais cabíveis. Estes Termos de Uso são regidos e interpretados de acordo com as leis da República Federativa do Brasil.\n" +
+                    "\n" +
+                    "Data e Versão\n" +
+                    "Estes Termos poderão passar por atualizações periódicas para refletir melhorias no sistema ou mudanças legais. Alterações significativas serão previamente comunicadas aos usuários.\n" +
+                    "Versão do Documento: 1.0\n" +
+                    "Data da última atualização: 26 de setembro de 2026.";
 
     private static final String POLITICA_PRIVACIDADE =
             "Politica de Privacidade do CrecheConecta\n\n"
