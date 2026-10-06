@@ -1,0 +1,9 @@
+# MODELO do application-local.properties (este .example VAI pro git; o real NAO).
+# Copie este arquivo para "application-local.properties" e preencha os valores.
+
+# Senha do banco PostgreSQL local
+spring.datasource.password=SUA_SENHA_AQUI
+
+# Chave de criptografia AES-256 das observacoes (Base64, 32 bytes)
+# Gere a sua com:  openssl rand -base64 32
+saude.criptografia.chave=GERE_UMA_CHAVE_BASE64_AQUI
