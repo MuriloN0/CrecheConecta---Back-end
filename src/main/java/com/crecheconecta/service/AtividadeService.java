@@ -18,17 +18,23 @@ import java.util.UUID;
 public class AtividadeService {
 
     private final AtividadeRepository atividadeRepository;
-    private final AtividadeValidation validation;
+    private final AtividadeTituloValidation tituloValidation;
+    private final AtividadePrazoValidation prazoValidation;
 
-    public AtividadeService(AtividadeRepository atividadeRepository, AtividadeValidation validation) {
+    public AtividadeService(
+            AtividadeRepository atividadeRepository,
+            AtividadeTituloValidation tituloValidation,
+            AtividadePrazoValidation prazoValidation
+    ) {
         this.atividadeRepository = atividadeRepository;
-        this.validation = validation;
+        this.tituloValidation = tituloValidation;
+        this.prazoValidation = prazoValidation;
     }
 
     @Transactional
     public UUID criar(UUID turmaId, NovaAtividadeRequestDTO request) {
-        validation.validarTitulo(request.titulo());
-        validation.validarPrazo(request.tipo(), request.prazoConclusao());
+        tituloValidation.validar(request.titulo());
+        prazoValidation.validar(request.tipo(), request.prazoConclusao());
 
         AtividadeEntity atividade = new AtividadeEntity();
         atividade.setId(UUID.randomUUID());
@@ -53,8 +59,8 @@ public class AtividadeService {
         String titulo = request.titulo() != null ? request.titulo() : atividade.getTitulo();
         LocalDate prazo = request.prazoConclusao() != null ? request.prazoConclusao() : atividade.getPrazoConclusao();
 
-        validation.validarTitulo(titulo);
-        validation.validarPrazo(tipo, prazo);
+        tituloValidation.validar(titulo);
+        prazoValidation.validar(tipo, prazo);
 
         atividade.setTipo(tipo);
         atividade.setTitulo(titulo.trim());

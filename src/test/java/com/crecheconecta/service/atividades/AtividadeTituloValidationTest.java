@@ -1,8 +1,7 @@
 package com.crecheconecta.service.atividades;
 
 import com.crecheconecta.exception.RegraNegocioException;
-import com.crecheconecta.model.TipoAtividade;
-import com.crecheconecta.service.AtividadeValidation;
+import com.crecheconecta.service.AtividadeTituloValidation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -13,13 +12,13 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class AtividadeValidationTest {
+class AtividadeTituloValidationTest {
 
-    private AtividadeValidation validation;
+    private AtividadeTituloValidation validation;
 
     @BeforeEach
     void setUp() {
-        validation = new AtividadeValidation();
+        validation = new AtividadeTituloValidation();
     }
 
     @Test
@@ -28,7 +27,7 @@ class AtividadeValidationTest {
         String titulo = "Atividade de leitura";
 
         // Act & Assert
-        assertDoesNotThrow(() -> validation.validarTitulo(titulo));
+        assertDoesNotThrow(() -> validation.validar(titulo));
     }
 
     @Test
@@ -39,7 +38,7 @@ class AtividadeValidationTest {
         // Act
         RegraNegocioException ex = assertThrows(
                 RegraNegocioException.class,
-                () -> validation.validarTitulo(titulo)
+                () -> validation.validar(titulo)
         );
 
         // Assert
@@ -52,7 +51,22 @@ class AtividadeValidationTest {
         String titulo = "a".repeat(150);
 
         // Act & Assert
-        assertDoesNotThrow(() -> validation.validarTitulo(titulo));
+        assertDoesNotThrow(() -> validation.validar(titulo));
+    }
+
+    @Test
+    void rejeitaTituloCom151Caracteres() {
+        // Arrange
+        String titulo = "a".repeat(151);
+
+        // Act
+        RegraNegocioException ex = assertThrows(
+                RegraNegocioException.class,
+                () -> validation.validar(titulo)
+        );
+
+        // Assert
+        assertEquals("Título excedeu 150 caracteres", ex.getMessage());
     }
 
     @ParameterizedTest
@@ -62,37 +76,10 @@ class AtividadeValidationTest {
         // Act
         RegraNegocioException ex = assertThrows(
                 RegraNegocioException.class,
-                () -> validation.validarTitulo(titulo)
+                () -> validation.validar(titulo)
         );
 
         // Assert
         assertEquals("Título é obrigatório", ex.getMessage());
-    }
-
-    @Test
-    void casaExigePrazo() {
-        // Arrange
-        TipoAtividade tipo = TipoAtividade.CASA;
-
-        // Act
-        RegraNegocioException ex = assertThrows(
-                RegraNegocioException.class,
-                () -> validation.validarPrazo(tipo, null)
-        );
-
-        // Assert
-        assertEquals(
-                "Prazo de conclusão é obrigatório para atividade de casa",
-                ex.getMessage()
-        );
-    }
-
-    @Test
-    void diaPermiteSemPrazo() {
-        // Arrange
-        TipoAtividade tipo = TipoAtividade.DIA;
-
-        // Act & Assert
-        assertDoesNotThrow(() -> validation.validarPrazo(tipo, null));
     }
 }

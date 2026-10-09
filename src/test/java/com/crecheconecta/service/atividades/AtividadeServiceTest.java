@@ -8,7 +8,8 @@ import com.crecheconecta.exception.RegraNegocioException;
 import com.crecheconecta.model.TipoAtividade;
 import com.crecheconecta.repository.AtividadeRepository;
 import com.crecheconecta.service.AtividadeService;
-import com.crecheconecta.service.AtividadeValidation;
+import com.crecheconecta.service.AtividadePrazoValidation;
+import com.crecheconecta.service.AtividadeTituloValidation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +40,8 @@ class AtividadeServiceTest {
     void setUp() {
         atividadeService = new AtividadeService(
                 atividadeRepository,
-                new AtividadeValidation()
+                new AtividadeTituloValidation(),
+                new AtividadePrazoValidation()
         );
     }
 
