@@ -101,14 +101,10 @@ public class SecurityConfig {
                                 "/api/alunos/*/fichas-saude/*"
                         )
                         .hasRole("DIRECAO")
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/api/atividades",
-                                "/api/atividades/**"
-                        )
-                        .permitAll()
+
+                        .requestMatchers("/api/atividades/**")
+                        .authenticated()
+
                         .anyRequest()
                         .denyAll()
                 )

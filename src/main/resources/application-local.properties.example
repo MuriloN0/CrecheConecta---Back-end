@@ -1,9 +1,12 @@
 # MODELO do application-local.properties (este .example VAI pro git; o real NAO).
-# Copie este arquivo para "application-local.properties" e preencha os valores.
+# Copie para "application-local.properties" e ajuste o que for diferente da sua máquina.
 
-# Senha do banco PostgreSQL local
-spring.datasource.password=SUA_SENHA_AQUI
+# spring.datasource.url=jdbc:postgresql://localhost:5433/CrecheConecta
+# spring.datasource.password=SUA_SENHA_AQUI
 
-# Chave de criptografia AES-256 das observacoes (Base64, 32 bytes)
-# Gere a sua com:  openssl rand -base64 32
-saude.criptografia.chave=GERE_UMA_CHAVE_BASE64_AQUI
+# Chave AES-256 das observacoes (Base64, 32 bytes): openssl rand -base64 32
+# saude.criptografia.chave=GERE_UMA_CHAVE_BASE64_AQUI
+
+# app.email.resend.api-key=
+# app.email.resend.remetente=
+# app.seguranca.hmac-chave-base64=
