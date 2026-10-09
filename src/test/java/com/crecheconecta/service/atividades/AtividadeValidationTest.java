@@ -1,6 +1,5 @@
 package com.crecheconecta.service.atividades;
 
-import com.crecheconecta.exception.RegraNegocioException;
 import com.crecheconecta.model.TipoAtividade;
 import com.crecheconecta.service.AtividadeValidation;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,8 +36,8 @@ class AtividadeValidationTest {
         String titulo = "   ";
 
         // Act
-        RegraNegocioException ex = assertThrows(
-                RegraNegocioException.class,
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
                 () -> validation.validarTitulo(titulo)
         );
 
@@ -60,8 +59,8 @@ class AtividadeValidationTest {
     @ValueSource(strings = {"   ", "\t"})
     void rejeitaTitulosInvalidos(String titulo) {
         // Act
-        RegraNegocioException ex = assertThrows(
-                RegraNegocioException.class,
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
                 () -> validation.validarTitulo(titulo)
         );
 
@@ -75,8 +74,8 @@ class AtividadeValidationTest {
         TipoAtividade tipo = TipoAtividade.CASA;
 
         // Act
-        RegraNegocioException ex = assertThrows(
-                RegraNegocioException.class,
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
                 () -> validation.validarPrazo(tipo, null)
         );
 

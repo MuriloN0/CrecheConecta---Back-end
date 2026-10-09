@@ -1,20 +1,29 @@
 package com.crecheconecta.controller.atividades;
 
+import com.crecheconecta.entity.Perfil;
+import com.crecheconecta.security.UsuarioAutenticado;
+import com.crecheconecta.service.SessaoService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -40,8 +49,33 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class AtividadeAPIIntegracaoTest {
 
+    private static final String TOKEN_TESTE =
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private SessaoService sessaoService;
+
+    @BeforeEach
+    void autenticacaoDeTeste() {
+        when(sessaoService.autenticar(anyString())).thenAnswer(invocation -> {
+            String token = invocation.getArgument(0);
+            if (!TOKEN_TESTE.equals(token)) {
+                return Optional.empty();
+            }
+            return Optional.of(
+                    new UsuarioAutenticado(
+                            UUID.randomUUID(),
+                            UUID.randomUUID(),
+                            "Professor Teste",
+                            "professor@teste.local",
+                            Perfil.PROFESSOR
+                    )
+            );
+        });
+    }
 
     @Test
     void postCriaCom201() throws Exception {
@@ -60,6 +94,7 @@ class AtividadeAPIIntegracaoTest {
         // Act
         ResultActions resultado = mockMvc.perform(
                 post("/api/atividades")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN_TESTE)
                         .header("turmaUUID", turmaId.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(corpo)
@@ -87,6 +122,7 @@ class AtividadeAPIIntegracaoTest {
         // Act
         ResultActions resultado = mockMvc.perform(
                 post("/api/atividades")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN_TESTE)
                         .header("turmaUUID", turmaId.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(corpo)
@@ -105,7 +141,10 @@ class AtividadeAPIIntegracaoTest {
         UUID idInexistente = UUID.randomUUID();
 
         // Act
-        ResultActions resultado = mockMvc.perform(get("/api/atividades/{id}", idInexistente));
+        ResultActions resultado = mockMvc.perform(
+                get("/api/atividades/{id}", idInexistente)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN_TESTE)
+        );
 
         // Assert
         resultado
@@ -132,6 +171,7 @@ class AtividadeAPIIntegracaoTest {
         // Act
         MvcResult criacao = mockMvc.perform(
                         post("/api/atividades")
+                                .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN_TESTE)
                                 .header("turmaUUID", turmaId.toString())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(corpo)
@@ -142,7 +182,10 @@ class AtividadeAPIIntegracaoTest {
         String location = criacao.getResponse().getHeader("Location");
         String id = location.substring(location.lastIndexOf('/') + 1);
 
-        ResultActions consulta = mockMvc.perform(get("/api/atividades/{id}", id));
+        ResultActions consulta = mockMvc.perform(
+                get("/api/atividades/{id}", id)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN_TESTE)
+        );
 
         // Assert
         consulta

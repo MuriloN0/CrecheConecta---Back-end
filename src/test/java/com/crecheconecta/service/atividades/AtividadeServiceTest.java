@@ -4,7 +4,6 @@ import com.crecheconecta.dto.AtualizarAtividadeRequestDTO;
 import com.crecheconecta.dto.NovaAtividadeRequestDTO;
 import com.crecheconecta.entity.AtividadeEntity;
 import com.crecheconecta.exception.AtividadeNaoEncontradaException;
-import com.crecheconecta.exception.RegraNegocioException;
 import com.crecheconecta.model.TipoAtividade;
 import com.crecheconecta.repository.AtividadeRepository;
 import com.crecheconecta.service.AtividadeService;
@@ -84,8 +83,8 @@ class AtividadeServiceTest {
         );
 
         // Act
-        RegraNegocioException ex = assertThrows(
-                RegraNegocioException.class,
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
                 () -> atividadeService.criar(turmaId, request)
         );
 

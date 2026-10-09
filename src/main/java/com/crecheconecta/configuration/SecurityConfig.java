@@ -36,7 +36,8 @@ public class SecurityConfig {
                                 "/api/auth/redefinir-senha",
                                 "/api/termo/aceite",
                                 "/api/alunos/*/fichas-saude",
-                                "/api/alunos/*/fichas-saude/*"
+                                "/api/alunos/*/fichas-saude/*",
+                                "/api/atividades/**"
                         )
                 )
                 .sessionManagement(session -> session
@@ -99,6 +100,9 @@ public class SecurityConfig {
                                 "/api/alunos/*/fichas-saude/*"
                         )
                         .hasRole("DIRECAO")
+
+                        .requestMatchers("/api/atividades/**")
+                        .authenticated()
 
                         .anyRequest()
                         .denyAll()
