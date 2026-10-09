@@ -37,6 +37,7 @@ public class SecurityConfig {
                                 "/api/termo/aceite",
                                 "/api/alunos/*/fichas-saude",
                                 "/api/alunos/*/fichas-saude/*",
+                                "/api/atividades",
                                 "/api/atividades/**"
                         )
                 )
