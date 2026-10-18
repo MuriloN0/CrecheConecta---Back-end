@@ -99,6 +99,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    @ExceptionHandler(ObservacaoNaoEncontradaException.class)
+    public ResponseEntity<ProblemDetail> tratarObservacaoNaoEncontrada(
+            ObservacaoNaoEncontradaException exception
+    ) {
+        registrarAuditoria("ERRO_NAO_ENCONTRADA");
+
+        return resposta(
+                HttpStatus.NOT_FOUND,
+                "OBSERVACAO_NAO_ENCONTRADA",
+                "Observacao nao encontrada."
+        );
+    }
+
     @ExceptionHandler(AtividadeNaoEncontradaException.class)
     public ResponseEntity<ProblemDetail> tratarAtividadeNaoEncontrada(
             AtividadeNaoEncontradaException exception

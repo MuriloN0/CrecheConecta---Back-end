@@ -109,8 +109,8 @@ public class FichaSaudeService {
     }
 
     private void exigirGestao(UsuarioAtual usuario) {
-        if (usuario.perfil() != Perfil.DIRECAO) {
-            throw new AcessoNegadoException("Apenas a direção pode gerenciar fichas de saúde.");
+        if (usuario.perfil() != Perfil.RESPONSAVEL) {
+            throw new AcessoNegadoException("Apenas os pais podem gerenciar as informacoes relevantes.");
         }
     }
 

@@ -37,6 +37,8 @@ public class SecurityConfig {
                                 "/api/termo/aceite",
                                 "/api/alunos/*/fichas-saude",
                                 "/api/alunos/*/fichas-saude/*",
+                                "/api/alunos/*/observacoes",
+                                "/api/alunos/*/observacoes/*",
                                 "/api/atividades",
                                 "/api/atividades/**"
                         )
@@ -79,28 +81,51 @@ public class SecurityConfig {
                         )
                         .authenticated()
 
-                        // Fichas de saúde: acesso restrito à direção.
+                        // Informacoes relevantes (ficha de saude): gerenciadas pelos pais.
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/alunos/*/fichas-saude",
                                 "/api/alunos/*/fichas-saude/*"
                         )
-                        .hasRole("DIRECAO")
+                        .hasRole("PAIS")
+                        // Observacoes do filho: acesso dos pais (perfil PAIS).
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/alunos/*/observacoes",
+                                "/api/alunos/*/observacoes/*"
+                        )
+                        .hasRole("PAIS")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/alunos/*/observacoes"
+                        )
+                        .hasRole("PAIS")
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/alunos/*/observacoes/*"
+                        )
+                        .hasRole("PAIS")
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/alunos/*/observacoes/*"
+                        )
+                        .hasRole("PAIS")
+
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/alunos/*/fichas-saude"
                         )
-                        .hasRole("DIRECAO")
+                        .hasRole("PAIS")
                         .requestMatchers(
                                 HttpMethod.PUT,
                                 "/api/alunos/*/fichas-saude/*"
                         )
-                        .hasRole("DIRECAO")
+                        .hasRole("PAIS")
                         .requestMatchers(
                                 HttpMethod.DELETE,
                                 "/api/alunos/*/fichas-saude/*"
                         )
-                        .hasRole("DIRECAO")
+                        .hasRole("PAIS")
 
                         .requestMatchers("/api/atividades/**")
                         .authenticated()
