@@ -42,4 +42,7 @@ public class Usuario {
 
     @Version
     private Long versao;
+
+    @Column(length = 11)
+    private String telefone;
 }
