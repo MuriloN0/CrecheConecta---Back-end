@@ -45,4 +45,8 @@ public class Usuario {
 
     @Column(length = 11)
     private String telefone;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "situacao_cadastro", nullable = false, length = 30)
+    private SituacaoCadastro situacaoCadastro = SituacaoCadastro.APROVADO;
 }

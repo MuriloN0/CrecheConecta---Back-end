@@ -27,8 +27,7 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/api/auth/login", "/api/auth/confirmar-login", "/api/auth/logout", "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha", "/api/termo/aceite", "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*", "/api/atividades", "/api/atividades/**", "/api/professores/convites")
-                )
+                        .ignoringRequestMatchers("/api/auth/login", "/api/auth/confirmar-login", "/api/auth/logout", "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha", "/api/termo/aceite", "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*", "/api/atividades", "/api/atividades/**", "/api/professores/convites", "/api/cadastro/professores/consultar-convite", "/api/cadastro/professores/concluir"))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
@@ -46,6 +45,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/confirmar-login", "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha")
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/professores/convites").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/cadastro/professores/consultar-convite", "/api/cadastro/professores/concluir").permitAll()
+
                         // Sessão e termos do usuário.
                         .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/termo/status")
                         .authenticated()
