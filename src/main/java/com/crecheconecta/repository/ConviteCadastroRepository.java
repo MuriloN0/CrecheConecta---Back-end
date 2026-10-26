@@ -29,4 +29,12 @@ public interface ConviteCadastroRepository extends JpaRepository<ConviteCadastro
               AND c.canceladoEm IS NULL
             """)
     Optional<ConviteCadastro> buscarPendentePorEmailComBloqueio(@Param("email") String email);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT c
+        FROM ConviteCadastro c
+        WHERE c.id = :id
+        """)
+    Optional<ConviteCadastro> buscarPorIdComBloqueio(@Param("id") UUID id);
 }

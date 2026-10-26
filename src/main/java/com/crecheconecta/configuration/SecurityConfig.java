@@ -27,19 +27,7 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers(
-                                "/api/auth/login",
-                                "/api/auth/confirmar-login",
-                                "/api/auth/logout",
-                                "/api/auth/esqueci-senha",
-                                "/api/auth/confirmar-recuperacao",
-                                "/api/auth/redefinir-senha",
-                                "/api/termo/aceite",
-                                "/api/alunos/*/fichas-saude",
-                                "/api/alunos/*/fichas-saude/*",
-                                "/api/atividades",
-                                "/api/atividades/**"
-                        )
+                        .ignoringRequestMatchers("/api/auth/login", "/api/auth/confirmar-login", "/api/auth/logout", "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha", "/api/termo/aceite", "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*", "/api/atividades", "/api/atividades/**", "/api/professores/convites")
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
@@ -55,75 +43,28 @@ public class SecurityConfig {
                         .permitAll()
 
                         // Início e confirmação dos fluxos de autenticação.
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/auth/login",
-                                "/api/auth/confirmar-login",
-                                "/api/auth/esqueci-senha",
-                                "/api/auth/confirmar-recuperacao",
-                                "/api/auth/redefinir-senha"
-                        )
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/confirmar-login", "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha")
                         .permitAll()
-
-                        // Sessão e termos do usuário autenticado.
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/auth/me",
-                                "/api/termo/status"
-                        )
+                        .requestMatchers(HttpMethod.POST, "/api/professores/convites").hasRole("DIRECAO")
+                        // Sessão e termos do usuário.
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/termo/status")
                         .authenticated()
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/auth/logout",
-                                "/api/termo/aceite"
-                        )
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout", "/api/termo/aceite")
                         .authenticated()
 
                         // Fichas de saúde: acesso restrito à direção.
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/alunos/*/fichas-saude",
-                                "/api/alunos/*/fichas-saude/*"
-                        )
-                        .hasRole("DIRECAO")
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/alunos/*/fichas-saude"
-                        )
-                        .hasRole("DIRECAO")
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/alunos/*/fichas-saude/*"
-                        )
-                        .hasRole("DIRECAO")
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/alunos/*/fichas-saude/*"
-                        )
-                        .hasRole("DIRECAO")
-
-                        .requestMatchers("/api/atividades/**")
-                        .authenticated()
-
+                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/fichas-saude").hasRole("DIRECAO").requestMatchers(HttpMethod.PUT, "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
+                        .requestMatchers("/api/atividades/**").authenticated()
                         .anyRequest()
                         .denyAll()
                 )
                 .exceptionHandling(errors -> errors
-                        .authenticationEntryPoint(
-                                (request, response, exception) ->
-                                        RespostaErroSeguranca
-                                                .naoAutenticado(response)
-                        )
-                        .accessDeniedHandler(
-                                (request, response, exception) ->
-                                        RespostaErroSeguranca
-                                                .acessoNegado(response)
-                        )
+                        .authenticationEntryPoint((request, response, exception) -> RespostaErroSeguranca.naoAutenticado(response))
+                        .accessDeniedHandler((request, response, exception) -> RespostaErroSeguranca.acessoNegado(response))
                 )
-                .addFilterBefore(
-                        filtro,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                .addFilterBefore(filtro, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
