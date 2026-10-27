@@ -269,4 +269,10 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
         return detalhe;
     }
+
+    @ExceptionHandler(ProfessorNaoEncontradoException.class)
+    public ResponseEntity<ProblemDetail> tratarProfessorNaoEncontrado(ProfessorNaoEncontradoException exception) {
+
+        return resposta(HttpStatus.NOT_FOUND, "PROFESSOR_NAO_ENCONTRADO", exception.getMessage());
+    }
 }

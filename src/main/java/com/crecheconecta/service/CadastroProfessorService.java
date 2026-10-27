@@ -3,6 +3,7 @@ package com.crecheconecta.service;
 import com.crecheconecta.dto.ConcluirCadastroProfessorRequest;
 import com.crecheconecta.entity.ConviteCadastro;
 import com.crecheconecta.entity.Perfil;
+import com.crecheconecta.entity.SituacaoCadastro;
 import com.crecheconecta.entity.Usuario;
 import com.crecheconecta.exception.RegraNegocioException;
 import com.crecheconecta.repository.ConviteCadastroRepository;
@@ -68,6 +69,7 @@ public class CadastroProfessorService {
                 encoder.encode(request.senha())
         );
 
+        professor.setSituacaoCadastro(SituacaoCadastro.PENDENTE_APROVACAO);
         professor.setAtivo(false);
 
         usuarios.saveAndFlush(professor);
