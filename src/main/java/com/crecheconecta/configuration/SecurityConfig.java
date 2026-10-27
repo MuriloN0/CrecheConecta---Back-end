@@ -27,20 +27,10 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers(
-                                "/api/auth/login",
-                                "/api/auth/confirmar-login",
-                                "/api/auth/logout",
-                                "/api/auth/esqueci-senha",
-                                "/api/auth/confirmar-recuperacao",
-                                "/api/auth/redefinir-senha",
-                                "/api/termo/aceite",
-                                "/api/alunos/*/fichas-saude",
-                                "/api/alunos/*/fichas-saude/*",
-                                "/api/atividades",
-                                "/api/atividades/**"
-                        )
-                )
+                        .ignoringRequestMatchers("/api/auth/login", "/api/auth/confirmar-login", "/api/auth/logout", "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha",
+                                "/api/termo/aceite", "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*", "/api/atividades", "/api/atividades/**", "/api/professores/convites", "/api/cadastro/professores/consultar-convite",
+                                "/api/cadastro/professores/concluir", "/api/professores/*/aprovar", "/api/professores/*/rejeitar", "/api/professores/*", "/api/professores/*/inativar"))
+
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
@@ -55,75 +45,35 @@ public class SecurityConfig {
                         .permitAll()
 
                         // Início e confirmação dos fluxos de autenticação.
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/auth/login",
-                                "/api/auth/confirmar-login",
-                                "/api/auth/esqueci-senha",
-                                "/api/auth/confirmar-recuperacao",
-                                "/api/auth/redefinir-senha"
-                        )
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/confirmar-login", "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha")
                         .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/professores/convites").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/cadastro/professores/consultar-convite", "/api/cadastro/professores/concluir").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/professores/pendentes").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/professores/*/aprovar", "/api/professores/*/rejeitar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/professores", "/api/professores/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.PUT, "/api/professores/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/professores/*/inativar").hasRole("DIRECAO")
 
-                        // Sessão e termos do usuário autenticado.
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/auth/me",
-                                "/api/termo/status"
-                        )
+                        // Sessão e termos do usuário.
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/termo/status")
                         .authenticated()
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/auth/logout",
-                                "/api/termo/aceite"
-                        )
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout", "/api/termo/aceite")
                         .authenticated()
 
                         // Fichas de saúde: acesso restrito à direção.
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/alunos/*/fichas-saude",
-                                "/api/alunos/*/fichas-saude/*"
-                        )
-                        .hasRole("DIRECAO")
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/alunos/*/fichas-saude"
-                        )
-                        .hasRole("DIRECAO")
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/alunos/*/fichas-saude/*"
-                        )
-                        .hasRole("DIRECAO")
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/alunos/*/fichas-saude/*"
-                        )
-                        .hasRole("DIRECAO")
-
-                        .requestMatchers("/api/atividades/**")
-                        .authenticated()
-
+                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/fichas-saude").hasRole("DIRECAO").requestMatchers(HttpMethod.PUT, "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
+                        .requestMatchers("/api/atividades/**").authenticated()
                         .anyRequest()
                         .denyAll()
                 )
                 .exceptionHandling(errors -> errors
-                        .authenticationEntryPoint(
-                                (request, response, exception) ->
-                                        RespostaErroSeguranca
-                                                .naoAutenticado(response)
-                        )
-                        .accessDeniedHandler(
-                                (request, response, exception) ->
-                                        RespostaErroSeguranca
-                                                .acessoNegado(response)
-                        )
+                        .authenticationEntryPoint((request, response, exception) -> RespostaErroSeguranca.naoAutenticado(response))
+                        .accessDeniedHandler((request, response, exception) -> RespostaErroSeguranca.acessoNegado(response))
                 )
-                .addFilterBefore(
-                        filtro,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                .addFilterBefore(filtro, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
