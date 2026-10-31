@@ -18,6 +18,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.crecheconecta.repository.MatriculaTurmaRepository;
+import java.time.Clock;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -29,12 +31,16 @@ public class TurmaService {
     private final TurmaRepository turmas;
     private final UsuarioRepository usuarios;
     private final AuditoriaService auditoria;
+    private final MatriculaTurmaRepository matriculas;
+    private final Clock clock;
 
-    public TurmaService(TurmaRepository turmas, UsuarioRepository usuarios, AuditoriaService auditoria) {
+    public TurmaService(TurmaRepository turmas, UsuarioRepository usuarios, AuditoriaService auditoria, MatriculaTurmaRepository matriculas, Clock clock) {
 
         this.turmas = turmas;
         this.usuarios = usuarios;
         this.auditoria = auditoria;
+        this.matriculas = matriculas;
+        this.clock = clock;
     }
 
     @Transactional
@@ -118,6 +124,8 @@ public class TurmaService {
         }
 
         turma.setAtivo(false);
+
+        matriculas.encerrarDaTurma(turmaId, clock.instant());
 
         turmas.flush();
 

@@ -18,6 +18,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.crecheconecta.repository.MatriculaTurmaRepository;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -32,13 +33,15 @@ public class AlunoService {
     private final UsuarioRepository usuarios;
     private final AuditoriaService auditoria;
     private final Clock clock;
+    private final MatriculaTurmaRepository matriculas;
 
-    public AlunoService(AlunoRepository alunos, UsuarioRepository usuarios, AuditoriaService auditoria, Clock clock) {
+    public AlunoService(AlunoRepository alunos, UsuarioRepository usuarios, AuditoriaService auditoria, Clock clock,  MatriculaTurmaRepository matriculas) {
 
         this.alunos = alunos;
         this.usuarios = usuarios;
         this.auditoria = auditoria;
         this.clock = clock;
+        this.matriculas = matriculas;
     }
 
     @Transactional
@@ -127,6 +130,8 @@ public class AlunoService {
         }
 
         aluno.setAtivo(false);
+
+        matriculas.encerrarDoAluno(alunoId, clock.instant());
 
         alunos.flush();
 

@@ -292,4 +292,12 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return resposta(HttpStatus.NOT_FOUND, "TURMA_NAO_ENCONTRADA", exception.getMessage());
     }
 
+    @ExceptionHandler(MatriculaNaoEncontradaException.class)
+    public ResponseEntity<ProblemDetail> tratarMatriculaNaoEncontrada(MatriculaNaoEncontradaException exception) {
+
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(HttpStatus.NOT_FOUND, "MATRICULA_NAO_ENCONTRADA", exception.getMessage());
+    }
+
 }
