@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.crecheconecta.repository.MatriculaTurmaRepository;
 import java.time.Clock;
+import com.crecheconecta.repository.TurmaProfessorRepository;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -33,14 +34,16 @@ public class TurmaService {
     private final AuditoriaService auditoria;
     private final MatriculaTurmaRepository matriculas;
     private final Clock clock;
+    private final TurmaProfessorRepository professoresTurma;
 
-    public TurmaService(TurmaRepository turmas, UsuarioRepository usuarios, AuditoriaService auditoria, MatriculaTurmaRepository matriculas, Clock clock) {
+    public TurmaService(TurmaRepository turmas, UsuarioRepository usuarios, AuditoriaService auditoria, MatriculaTurmaRepository matriculas, Clock clock, TurmaProfessorRepository professoresTurma) {
 
         this.turmas = turmas;
         this.usuarios = usuarios;
         this.auditoria = auditoria;
         this.matriculas = matriculas;
         this.clock = clock;
+        this.professoresTurma = professoresTurma;
     }
 
     @Transactional
@@ -123,9 +126,12 @@ public class TurmaService {
             throw new RegraNegocioException("A turma já está inativa.");
         }
 
+        var agora = clock.instant();
+
         turma.setAtivo(false);
 
-        matriculas.encerrarDaTurma(turmaId, clock.instant());
+        matriculas.encerrarDaTurma(turmaId, agora);
+        professoresTurma.encerrarDaTurma(turmaId, agora);
 
         turmas.flush();
 

@@ -25,9 +25,6 @@ public class AlunoResponsavel {
     @Column(name = "responsavel_id", nullable = false)
     private UUID responsavelId;
 
-    @Column(nullable = false)
-    private int posicao;
-
     @Column(name = "criado_em", nullable = false)
     private Instant criadoEm;
 
