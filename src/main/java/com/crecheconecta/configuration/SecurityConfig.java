@@ -29,7 +29,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/api/auth/login", "/api/auth/confirmar-login", "/api/auth/logout", "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha",
                                 "/api/termo/aceite", "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*", "/api/atividades", "/api/atividades/**", "/api/professores/convites", "/api/cadastro/professores/consultar-convite",
-                                "/api/cadastro/professores/concluir", "/api/professores/*/aprovar", "/api/professores/*/rejeitar", "/api/professores/*", "/api/professores/*/inativar"))
+                                "/api/cadastro/professores/concluir", "/api/professores/*/aprovar", "/api/professores/*/rejeitar", "/api/professores/*", "/api/professores/*/inativar", "/api/alunos", "/api/alunos/*",
+                                "/api/alunos/*/inativar", "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar", "/api/turmas", "/api/turmas/*", "/api/turmas/*/inativar", "/api/turmas/*/matriculas",
+                                "/api/turmas/*/matriculas/*/encerrar", "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar"))
 
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
@@ -54,6 +56,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/professores", "/api/professores/*").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.PUT, "/api/professores/*").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.POST, "/api/professores/*/inativar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/alunos", "/api/alunos/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos", "/api/alunos/*/inativar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.PUT, "/api/alunos/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/responsaveis").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/turmas", "/api/turmas/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/turmas", "/api/turmas/*/inativar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.PUT, "/api/turmas/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/turmas/*/matriculas").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/turmas/*/matriculas", "/api/turmas/*/matriculas/*/encerrar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/turmas/*/professores").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar").hasRole("DIRECAO")
 
                         // Sessão e termos do usuário.
                         .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/termo/status")

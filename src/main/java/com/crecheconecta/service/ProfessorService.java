@@ -18,6 +18,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.crecheconecta.repository.TurmaProfessorRepository;
+import java.time.Clock;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -30,12 +32,16 @@ public class ProfessorService {
     private final UsuarioRepository usuarios;
     private final SessaoRepository sessoes;
     private final AuditoriaService auditoria;
+    private final TurmaProfessorRepository professoresTurma;
+    private final Clock clock;
 
-    public ProfessorService(UsuarioRepository usuarios, SessaoRepository sessoes, AuditoriaService auditoria) {
+    public ProfessorService(UsuarioRepository usuarios, SessaoRepository sessoes, AuditoriaService auditoria, TurmaProfessorRepository professoresTurma, Clock clock) {
 
         this.usuarios = usuarios;
         this.sessoes = sessoes;
         this.auditoria = auditoria;
+        this.professoresTurma = professoresTurma;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -111,12 +117,14 @@ public class ProfessorService {
             throw new RegraNegocioException("Somente professores aprovados " + "podem ser inativados.");
         }
 
+        var agora = clock.instant();
+
         professor.setSituacaoCadastro(SituacaoCadastro.INATIVO);
         professor.setAtivo(false);
 
         usuarios.flush();
 
-        sessoes.revogarTodasDoUsuario(professor.getId(), Instant.now());
+        professoresTurma.encerrarDoProfessor(professorId, agora);
 
         auditoria.aposCommit("PROFESSOR_INATIVADO", solicitante.id(), professor.getId());
 
