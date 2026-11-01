@@ -1,4 +1,4 @@
-package com.crecheconecta.controller.atividades;
+package com.crecheconecta.controller;
 
 import com.crecheconecta.entity.Perfil;
 import com.crecheconecta.security.UsuarioAutenticado;
