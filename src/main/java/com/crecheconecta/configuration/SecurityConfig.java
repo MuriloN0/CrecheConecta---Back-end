@@ -90,6 +90,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/observacoes/*").hasRole("RESPONSAVEL")
                         // Dados do filho (Perfil da Criança): só leitura, só pais (perfil RESPONSAVEL).
                         .requestMatchers(HttpMethod.GET, "/api/meus-filhos", "/api/meus-filhos/*").hasRole("RESPONSAVEL")
+                        // Atividades para casa do filho: só leitura, só pais.
+                        .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/atividades-casa").hasRole("RESPONSAVEL")
 
 
                         .requestMatchers("/api/atividades/**").authenticated()
