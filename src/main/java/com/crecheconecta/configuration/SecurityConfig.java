@@ -94,6 +94,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/atividades-casa").hasRole("RESPONSAVEL")
                         // Faltas e presenças (chamada) do filho: só leitura, só pais.
                         .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/chamada").hasRole("RESPONSAVEL")
+                        // Diário de rotina do filho: só leitura, só pais.
+                        .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/diario").hasRole("RESPONSAVEL")
+                        // Mala virtual do filho: só leitura, só pais.
+                        .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/mala").hasRole("RESPONSAVEL")
 
 
                         .requestMatchers("/api/atividades/**").authenticated()

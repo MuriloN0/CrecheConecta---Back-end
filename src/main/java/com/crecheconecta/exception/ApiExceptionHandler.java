@@ -112,6 +112,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    @ExceptionHandler(DiarioRotinaNaoEncontradoException.class)
+    public ResponseEntity<ProblemDetail> tratarDiarioRotinaNaoEncontrado(
+            DiarioRotinaNaoEncontradoException exception
+    ) {
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(
+                HttpStatus.NOT_FOUND,
+                "DIARIO_ROTINA_NAO_ENCONTRADO",
+                "Diário de rotina não encontrado."
+        );
+    }
+
     @ExceptionHandler(AtividadeNaoEncontradaException.class)
     public ResponseEntity<ProblemDetail> tratarAtividadeNaoEncontrada(
             AtividadeNaoEncontradaException exception
