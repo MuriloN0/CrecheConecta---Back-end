@@ -27,22 +27,13 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers(
-                                "/api/auth/login",
-                                "/api/auth/confirmar-login",
-                                "/api/auth/logout",
-                                "/api/auth/esqueci-senha",
-                                "/api/auth/confirmar-recuperacao",
-                                "/api/auth/redefinir-senha",
-                                "/api/termo/aceite",
-                                "/api/alunos/*/fichas-saude",
-                                "/api/alunos/*/fichas-saude/*",
-                                "/api/alunos/*/observacoes",
-                                "/api/alunos/*/observacoes/*",
-                                "/api/atividades",
-                                "/api/atividades/**"
-                        )
-                )
+                        .ignoringRequestMatchers("/api/auth/login", "/api/auth/confirmar-login", "/api/auth/logout", "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha",
+                                "/api/termo/aceite", "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*", "/api/atividades", "/api/atividades/**", "/api/professores/convites", "/api/cadastro/professores/consultar-convite",
+                                "/api/cadastro/professores/concluir", "/api/professores/*/aprovar", "/api/professores/*/rejeitar", "/api/professores/*", "/api/professores/*/inativar", "/api/alunos", "/api/alunos/*",
+                                "/api/alunos/*/inativar", "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar", "/api/turmas", "/api/turmas/*", "/api/turmas/*/inativar", "/api/turmas/*/matriculas",
+                                "/api/turmas/*/matriculas/*/encerrar", "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar",
+                                "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*"))
+
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
@@ -57,98 +48,55 @@ public class SecurityConfig {
                         .permitAll()
 
                         // Início e confirmação dos fluxos de autenticação.
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/auth/login",
-                                "/api/auth/confirmar-login",
-                                "/api/auth/esqueci-senha",
-                                "/api/auth/confirmar-recuperacao",
-                                "/api/auth/redefinir-senha"
-                        )
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/confirmar-login", "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha")
                         .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/professores/convites").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/cadastro/professores/consultar-convite", "/api/cadastro/professores/concluir").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/professores/pendentes").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/professores/*/aprovar", "/api/professores/*/rejeitar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/professores", "/api/professores/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.PUT, "/api/professores/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/professores/*/inativar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/alunos", "/api/alunos/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos", "/api/alunos/*/inativar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.PUT, "/api/alunos/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/responsaveis").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/turmas", "/api/turmas/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/turmas", "/api/turmas/*/inativar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.PUT, "/api/turmas/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/turmas/*/matriculas").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/turmas/*/matriculas", "/api/turmas/*/matriculas/*/encerrar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/turmas/*/professores").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar").hasRole("DIRECAO")
 
-                        // Sessão e termos do usuário autenticado.
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/auth/me",
-                                "/api/termo/status"
-                        )
+                        // Sessão e termos do usuário.
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/termo/status")
                         .authenticated()
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/auth/logout",
-                                "/api/termo/aceite"
-                        )
-                        .authenticated()
-
-                        // Informacoes relevantes (ficha de saude): gerenciadas pelos pais.
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/alunos/*/fichas-saude",
-                                "/api/alunos/*/fichas-saude/*"
-                        )
-                        .hasRole("PAIS")
-                        // Observacoes do filho: acesso dos pais (perfil PAIS).
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/alunos/*/observacoes",
-                                "/api/alunos/*/observacoes/*"
-                        )
-                        .hasRole("PAIS")
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/alunos/*/observacoes"
-                        )
-                        .hasRole("PAIS")
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/alunos/*/observacoes/*"
-                        )
-                        .hasRole("PAIS")
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/alunos/*/observacoes/*"
-                        )
-                        .hasRole("PAIS")
-
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/alunos/*/fichas-saude"
-                        )
-                        .hasRole("PAIS")
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/alunos/*/fichas-saude/*"
-                        )
-                        .hasRole("PAIS")
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/alunos/*/fichas-saude/*"
-                        )
-                        .hasRole("PAIS")
-
-                        .requestMatchers("/api/atividades/**")
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout", "/api/termo/aceite")
                         .authenticated()
 
+                        // Fichas de saúde: acesso restrito à direção.
+                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/fichas-saude").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.PUT, "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
+
+                        // Observacoes do filho: acesso dos pais (perfil RESPONSAVEL).
+                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*").hasRole("RESPONSAVEL")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/observacoes").hasRole("RESPONSAVEL")
+                        .requestMatchers(HttpMethod.PUT, "/api/alunos/*/observacoes/*").hasRole("RESPONSAVEL")
+                        .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/observacoes/*").hasRole("RESPONSAVEL")
+
+                        .requestMatchers("/api/atividades/**").authenticated()
                         .anyRequest()
                         .denyAll()
                 )
                 .exceptionHandling(errors -> errors
-                        .authenticationEntryPoint(
-                                (request, response, exception) ->
-                                        RespostaErroSeguranca
-                                                .naoAutenticado(response)
-                        )
-                        .accessDeniedHandler(
-                                (request, response, exception) ->
-                                        RespostaErroSeguranca
-                                                .acessoNegado(response)
-                        )
+                        .authenticationEntryPoint((request, response, exception) -> RespostaErroSeguranca.naoAutenticado(response))
+                        .accessDeniedHandler((request, response, exception) -> RespostaErroSeguranca.acessoNegado(response))
                 )
-                .addFilterBefore(
-                        filtro,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                .addFilterBefore(filtro, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

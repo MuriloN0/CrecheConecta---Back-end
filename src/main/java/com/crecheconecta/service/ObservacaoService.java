@@ -7,7 +7,6 @@ import com.crecheconecta.exception.ConflitoVersaoException;
 import com.crecheconecta.exception.ObservacaoNaoEncontradaException;
 import com.crecheconecta.model.DadosObservacao;
 import com.crecheconecta.repository.ObservacaoRepository;
-import com.crecheconecta.security.Perfil;
 import com.crecheconecta.security.UsuarioAtual;
 import java.time.Clock;
 import java.time.Instant;

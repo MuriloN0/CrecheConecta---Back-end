@@ -232,4 +232,39 @@ public class EmailService {
 
     public record EnviarEmailResponse(String id) {
     }
+
+    public String enviarConviteProfessor(UUID conviteId, String destinatario, String linkCadastro) {
+        Objects.requireNonNull(conviteId, "O convite deve ser informado."
+        );
+
+        validarDestinatario(destinatario);
+
+        if (linkCadastro == null || linkCadastro.isBlank()) {
+            throw new IllegalArgumentException("O link de cadastro deve ser informado.");
+        }
+
+        String texto = """
+            Olá!
+
+            Você recebeu um convite para se cadastrar como
+            professor no CrecheConecta.
+
+            Acesse o link abaixo para informar seus dados
+            e definir sua senha:
+
+            %s
+
+            Este link possui validade limitada e só poderá
+            ser utilizado uma vez.
+
+            Não compartilhe este link.
+            Se você não reconhece este convite, ignore a mensagem.
+
+            Equipe CrecheConecta
+            """.formatted(linkCadastro);
+
+        var requisicao = new EnviarEmailRequest(remetente, List.of(destinatario), "CrecheConecta - Convite para professor", texto);
+
+        return enviar(conviteId, "convite-professor/" + conviteId, requisicao);
+    }
 }

@@ -282,4 +282,42 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
         return detalhe;
     }
+
+    @ExceptionHandler(ProfessorNaoEncontradoException.class)
+    public ResponseEntity<ProblemDetail> tratarProfessorNaoEncontrado(ProfessorNaoEncontradoException exception) {
+
+        return resposta(HttpStatus.NOT_FOUND, "PROFESSOR_NAO_ENCONTRADO", exception.getMessage());
+    }
+
+    @ExceptionHandler(AlunoNaoEncontradoException.class)
+    public ResponseEntity<ProblemDetail> tratarAlunoNaoEncontrado(AlunoNaoEncontradoException exception) {
+
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(HttpStatus.NOT_FOUND, "ALUNO_NAO_ENCONTRADO", exception.getMessage());
+    }
+
+    @ExceptionHandler(TurmaNaoEncontradaException.class)
+    public ResponseEntity<ProblemDetail> tratarTurmaNaoEncontrada(TurmaNaoEncontradaException exception) {
+
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(HttpStatus.NOT_FOUND, "TURMA_NAO_ENCONTRADA", exception.getMessage());
+    }
+
+    @ExceptionHandler(MatriculaNaoEncontradaException.class)
+    public ResponseEntity<ProblemDetail> tratarMatriculaNaoEncontrada(MatriculaNaoEncontradaException exception) {
+
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(HttpStatus.NOT_FOUND, "MATRICULA_NAO_ENCONTRADA", exception.getMessage());
+    }
+
+    @ExceptionHandler(VinculoProfessorNaoEncontradoException.class)
+    public ResponseEntity<ProblemDetail> tratarVinculoProfessorNaoEncontrado(VinculoProfessorNaoEncontradoException exception) {
+
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(HttpStatus.NOT_FOUND, "VINCULO_PROFESSOR_NAO_ENCONTRADO", exception.getMessage());
+    }
 }
