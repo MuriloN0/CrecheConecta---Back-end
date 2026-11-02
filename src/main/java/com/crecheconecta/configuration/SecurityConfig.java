@@ -76,11 +76,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout", "/api/termo/aceite")
                         .authenticated()
 
-                        // Fichas de saúde: acesso restrito à direção.
-                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
-                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/fichas-saude").hasRole("DIRECAO")
-                        .requestMatchers(HttpMethod.PUT, "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
-                        .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
+                        // Informações relevantes (fichas de saúde): o responsável escreve; responsável, direção e professor leem.
+                        // A regra fina (filho do pai / professor da turma) fica no FichaSaudeService.
+                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*").hasAnyRole("RESPONSAVEL", "DIRECAO", "PROFESSOR")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/fichas-saude").hasRole("RESPONSAVEL")
+                        .requestMatchers(HttpMethod.PUT, "/api/alunos/*/fichas-saude/*").hasRole("RESPONSAVEL")
+                        .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/fichas-saude/*").hasRole("RESPONSAVEL")
 
                         // Observacoes do filho: acesso dos pais (perfil RESPONSAVEL).
                         .requestMatchers(HttpMethod.GET, "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*").hasRole("RESPONSAVEL")
