@@ -11,6 +11,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.crecheconecta.dto.ConvidarDirecaoRequest;
+import com.crecheconecta.dto.ConviteCadastroResponse;
+import com.crecheconecta.service.CadastroDirecaoService;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/direcao")
@@ -18,10 +22,12 @@ import org.springframework.web.bind.annotation.*;
 public class DirecaoController {
 
     private final DirecaoService direcao;
+    private final CadastroDirecaoService cadastros;
 
-    public DirecaoController(DirecaoService direcao) {
+    public DirecaoController(DirecaoService direcao, CadastroDirecaoService cadastros) {
 
         this.direcao = direcao;
+        this.cadastros = cadastros;
     }
 
     @GetMapping("/me")
@@ -29,9 +35,7 @@ public class DirecaoController {
 
         var resposta = direcao.consultarMinhaConta(UsuarioAtual.de(autenticado));
 
-        return ResponseEntity.ok()
-                .cacheControl(CacheControl.noStore())
-                .body(resposta);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
     @PostMapping("/me/inativar")
@@ -39,8 +43,14 @@ public class DirecaoController {
 
         var resposta = direcao.inativarMinhaConta(request.versao(), UsuarioAtual.de(autenticado));
 
-        return ResponseEntity.ok()
-                .cacheControl(CacheControl.noStore())
-                .body(resposta);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
+    }
+
+    @PostMapping("/convites")
+    public ResponseEntity<ConviteCadastroResponse> convidar(@Valid @RequestBody ConvidarDirecaoRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+
+        var resposta = cadastros.convidar(request, UsuarioAtual.de(autenticado));
+
+        return ResponseEntity.status(HttpStatus.CREATED).cacheControl(CacheControl.noStore()).body(resposta);
     }
 }
