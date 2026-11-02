@@ -10,6 +10,7 @@ import com.crecheconecta.entity.Perfil;
 import com.crecheconecta.entity.SituacaoCadastro;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import java.util.List;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -30,9 +31,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
         FROM Usuario u
         WHERE u.email = :email
         """)
-    Optional<Usuario> buscarPorEmailComBloqueio(
-            @Param("email") String email
-    );
+    Optional<Usuario> buscarPorEmailComBloqueio(@Param("email") String email);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
@@ -40,7 +39,14 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
         FROM Usuario u
         WHERE u.id = :id
         """)
-    Optional<Usuario> buscarPorIdComBloqueio(
-            @Param("id") UUID id
-    );
+    Optional<Usuario> buscarPorIdComBloqueio(@Param("id") UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+    SELECT u
+    FROM Usuario u
+    WHERE u.perfil = :perfil
+    ORDER BY u.id
+    """)
+    List<Usuario> buscarPorPerfilComBloqueio(@Param("perfil") Perfil perfil);
 }

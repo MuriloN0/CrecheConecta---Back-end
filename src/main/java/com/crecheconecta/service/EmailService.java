@@ -267,4 +267,41 @@ public class EmailService {
 
         return enviar(conviteId, "convite-professor/" + conviteId, requisicao);
     }
+
+    public String enviarConviteDirecao(UUID conviteId, String destinatario, String linkCadastro) {
+
+        Objects.requireNonNull(conviteId, "O convite deve ser informado.");
+
+        validarDestinatario(destinatario);
+
+        if (linkCadastro == null || linkCadastro.isBlank()) {
+
+            throw new IllegalArgumentException("O link de cadastro deve ser informado.");
+        }
+
+        String texto = """
+            Olá!
+
+            Você recebeu um convite para integrar a direção
+            do CrecheConecta.
+
+            Acesse o link abaixo para informar seu telefone
+            e definir sua senha:
+
+            %s
+
+            O convite é válido por 24 horas e só pode
+            ser utilizado uma vez.
+
+            Não compartilhe este link.
+
+            Se você não reconhece este convite, ignore a mensagem.
+
+            Equipe CrecheConecta
+            """.formatted(linkCadastro);
+
+        var requisicao = new EnviarEmailRequest(remetente, List.of(destinatario), "CrecheConecta - Convite para direção", texto);
+
+        return enviar(conviteId, "convite-direcao/" + conviteId, requisicao);
+    }
 }
