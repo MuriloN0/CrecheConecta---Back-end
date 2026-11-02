@@ -32,7 +32,7 @@ public class SecurityConfig {
                                 "/api/cadastro/professores/concluir", "/api/professores/*/aprovar", "/api/professores/*/rejeitar", "/api/professores/*", "/api/professores/*/inativar", "/api/alunos", "/api/alunos/*",
                                 "/api/alunos/*/inativar", "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar", "/api/turmas", "/api/turmas/*", "/api/turmas/*/inativar", "/api/turmas/*/matriculas",
                                 "/api/turmas/*/matriculas/*/encerrar", "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar", "/api/direcao/me/inativar", "/api/direcao/convites", "/api/cadastro/direcao/consultar-convite",
-                                "/api/cadastro/direcao/concluir"))
+                                "/api/cadastro/direcao/concluir", "/api/direcao/me"))
 
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
@@ -73,6 +73,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/direcao/me/inativar").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.POST, "/api/direcao/convites").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.POST, "/api/cadastro/direcao/consultar-convite", "/api/cadastro/direcao/concluir").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/direcao").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.PUT, "/api/direcao/me").hasRole("DIRECAO")
 
                         // Sessão e termos do usuário.
                         .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/termo/status")

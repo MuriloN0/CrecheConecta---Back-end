@@ -13,6 +13,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.crecheconecta.dto.AtualizarDirecaoRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.time.Clock;
 import java.util.Objects;
@@ -107,5 +111,64 @@ public class DirecaoService {
     private AccessDeniedException acessoNegado() {
 
         return new AccessDeniedException("Acesso restrito à direção ativa e aprovada.");
+    }
+
+    @Transactional(readOnly = true)
+    public Page<DirecaoResponse> listar(int pagina, int tamanho, UsuarioAtual solicitante) {
+
+        validarSolicitante(solicitante);
+
+        var usuario = usuarios.findById(solicitante.id()).orElseThrow(this::acessoNegado);
+
+        validarDirecaoAtiva(usuario);
+
+        if (pagina < 0 || tamanho < 1 || tamanho > 100) {
+
+            throw new RegraNegocioException("Informe página a partir de zero " + "e tamanho entre 1 e 100.");
+        }
+
+        var ordenacao = Sort.by("nome").ascending().and(Sort.by("id").ascending());
+
+        var paginacao = PageRequest.of(pagina, tamanho, ordenacao);
+
+        return usuarios.findByPerfil(Perfil.DIRECAO, paginacao).map(DirecaoResponse::de);
+    }
+
+    @Transactional
+    public DirecaoResponse atualizarMinhaConta(AtualizarDirecaoRequest request, UsuarioAtual solicitante) {
+
+        validarSolicitante(solicitante);
+
+        var usuario = usuarios.buscarPorIdComBloqueio(solicitante.id()).orElseThrow(this::acessoNegado);
+
+        validarDirecaoAtiva(usuario);
+
+        if (request.versao() == null || !Objects.equals(usuario.getVersao(), request.versao())) {
+
+            throw new ConflitoVersaoException();
+        }
+
+        String nome = request.nome();
+
+        if (nome == null || nome.isBlank() || nome.length() > 150) {
+
+            throw new RegraNegocioException("Informe um nome com até 150 caracteres.");
+        }
+
+        String telefone = request.telefone();
+
+        if (telefone == null || !telefone.matches("[1-9][0-9]{9,10}")) {
+
+            throw new RegraNegocioException("Informe o telefone com DDD e somente números.");
+        }
+
+        usuario.setNome(nome.strip());
+        usuario.setTelefone(telefone);
+
+        usuarios.flush();
+
+        auditoria.aposCommit("DIRECAO_ATUALIZADA", solicitante.id(), usuario.getId());
+
+        return DirecaoResponse.de(usuario);
     }
 }

@@ -15,6 +15,8 @@ import com.crecheconecta.dto.ConvidarDirecaoRequest;
 import com.crecheconecta.dto.ConviteCadastroResponse;
 import com.crecheconecta.service.CadastroDirecaoService;
 import org.springframework.http.HttpStatus;
+import com.crecheconecta.dto.AtualizarDirecaoRequest;
+import org.springframework.data.domain.Page;
 
 @RestController
 @RequestMapping("/api/direcao")
@@ -52,5 +54,21 @@ public class DirecaoController {
         var resposta = cadastros.convidar(request, UsuarioAtual.de(autenticado));
 
         return ResponseEntity.status(HttpStatus.CREATED).cacheControl(CacheControl.noStore()).body(resposta);
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<DirecaoResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+
+        var resposta = direcao.listar(pagina, tamanho, UsuarioAtual.de(autenticado));
+
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<DirecaoResponse> atualizarMinhaConta(@Valid @RequestBody AtualizarDirecaoRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+
+        var resposta = direcao.atualizarMinhaConta(request, UsuarioAtual.de(autenticado));
+
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 }
