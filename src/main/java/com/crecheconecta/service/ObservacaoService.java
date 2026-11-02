@@ -2,43 +2,44 @@ package com.crecheconecta.service;
 
 import com.crecheconecta.dto.ObservacaoResponse;
 import com.crecheconecta.entity.Observacao;
-import com.crecheconecta.exception.AcessoNegadoException;
 import com.crecheconecta.exception.ConflitoVersaoException;
 import com.crecheconecta.exception.ObservacaoNaoEncontradaException;
 import com.crecheconecta.model.DadosObservacao;
 import com.crecheconecta.repository.ObservacaoRepository;
 import com.crecheconecta.security.UsuarioAtual;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Observações do filho (CRUD do RESPONSAVEL).
+ * Toda operação passa pelo "porteiro": só o responsável ATUAL do aluno lê e escreve.
+ */
 @Service
-@Transactional
 public class ObservacaoService {
 
-    private final ObservacaoRepository repository;
+    private final ObservacaoRepository observacoes;
+    private final VinculoResponsavelService acessoResponsavel;
     private final CriptografiaService cripto;
     private final AuditoriaService auditoria;
     private final Clock clock;
 
-    public ObservacaoService(
-            ObservacaoRepository repository,
-            CriptografiaService cripto,
-            AuditoriaService auditoria,
-            Clock clock) {
-        this.repository = repository;
+    public ObservacaoService(ObservacaoRepository observacoes, VinculoResponsavelService acessoResponsavel, CriptografiaService cripto, AuditoriaService auditoria, Clock clock) {
+        this.observacoes = observacoes;
+        this.acessoResponsavel = acessoResponsavel;
         this.cripto = cripto;
         this.auditoria = auditoria;
         this.clock = clock;
     }
 
-    // ---- CADASTRAR ----
-    public UUID cadastrar(UUID alunoId, DadosObservacao dados, UsuarioAtual usuario) {
-        exigirAutenticado(usuario);
+    @Transactional
+    public UUID cadastrar(UUID alunoId, DadosObservacao dados, UsuarioAtual solicitante) {
+        acessoResponsavel.exigirResponsavelDoAluno(solicitante, alunoId);
 
         Observacao obs = new Observacao();
         obs.setAlunoId(alunoId);
@@ -48,34 +49,36 @@ public class ObservacaoService {
         obs.setDataCriacao(agora);
         obs.setDataAtualizacao(agora);
 
-        repository.save(obs);
-        auditoria.aposCommit("OBSERVACAO_CADASTRADA", usuario.id(), obs.getId());
+        observacoes.saveAndFlush(obs);
+        auditoria.aposCommit("OBSERVACAO_CADASTRADA", solicitante.id(), obs.getId());
         return obs.getId();
     }
 
     @Transactional(readOnly = true)
-    public List<ObservacaoResponse> listar(UUID alunoId, UsuarioAtual usuario) {
-        exigirAutenticado(usuario);
-        List<ObservacaoResponse> lista =
-                repository.findByAlunoId(alunoId).stream()
-                        .map(obs -> ObservacaoResponse.de(obs, cripto.decifrar(obs.getConteudo())))
-                        .toList();
-        auditoria.registrar("OBSERVACOES_LISTADAS", usuario.id(), alunoId);
+    public List<ObservacaoResponse> listar(UUID alunoId, UsuarioAtual solicitante) {
+        acessoResponsavel.exigirResponsavelDoAluno(solicitante, alunoId);
+
+        List<ObservacaoResponse> lista = observacoes.findByAlunoId(alunoId).stream().map(obs -> ObservacaoResponse.de(obs, cripto.decifrar(obs.getConteudo()))).toList();
+
+        auditoria.registrar("OBSERVACOES_LISTADAS", solicitante.id(), alunoId);
         return lista;
     }
 
     @Transactional(readOnly = true)
-    public ObservacaoResponse visualizar(UUID alunoId, UUID observacaoId, UsuarioAtual usuario) {
-        exigirAutenticado(usuario);
+    public ObservacaoResponse visualizar(UUID alunoId, UUID observacaoId, UsuarioAtual solicitante) {
+        acessoResponsavel.exigirResponsavelDoAluno(solicitante, alunoId);
+
         Observacao obs = buscar(alunoId, observacaoId);
         String conteudo = cripto.decifrar(obs.getConteudo());
-        auditoria.registrar("OBSERVACAO_CONSULTADA", usuario.id(), observacaoId);
+
+        auditoria.registrar("OBSERVACAO_CONSULTADA", solicitante.id(), observacaoId);
         return ObservacaoResponse.de(obs, conteudo);
     }
 
-    public ObservacaoResponse atualizar(
-            UUID alunoId, UUID observacaoId, DadosObservacao dados, Long versao, UsuarioAtual usuario) {
-        exigirAutenticado(usuario);
+    @Transactional
+    public ObservacaoResponse atualizar(UUID alunoId, UUID observacaoId, DadosObservacao dados, Long versao, UsuarioAtual solicitante) {
+        acessoResponsavel.exigirResponsavelDoAluno(solicitante, alunoId);
+
         Observacao obs = buscar(alunoId, observacaoId);
         validarVersao(obs, versao);
 
@@ -83,31 +86,27 @@ public class ObservacaoService {
         obs.setConteudo(cripto.cifrar(dados.conteudo()));
         obs.setDataAtualizacao(clock.instant());
 
-        auditoria.aposCommit("OBSERVACAO_EDITADA", usuario.id(), obs.getId());
-        String conteudo = cripto.decifrar(obs.getConteudo());
-        return ObservacaoResponse.de(obs, conteudo);
+        // flush agora: o Hibernate incrementa o @Version e a resposta já sai com a versão NOVA.
+        observacoes.saveAndFlush(obs);
+
+        auditoria.aposCommit("OBSERVACAO_EDITADA", solicitante.id(), obs.getId());
+        return ObservacaoResponse.de(obs, cripto.decifrar(obs.getConteudo()));
     }
 
-    public void excluir(UUID alunoId, UUID observacaoId, UsuarioAtual usuario) {
-        exigirAutenticado(usuario);
+    @Transactional
+    public void excluir(UUID alunoId, UUID observacaoId, UsuarioAtual solicitante) {
+        acessoResponsavel.exigirResponsavelDoAluno(solicitante, alunoId);
+
         Observacao obs = buscar(alunoId, observacaoId);
-        repository.delete(obs);
-        auditoria.aposCommit("OBSERVACAO_EXCLUIDA", usuario.id(), observacaoId);
+        observacoes.delete(obs);
+        observacoes.flush();
+
+        auditoria.aposCommit("OBSERVACAO_EXCLUIDA", solicitante.id(), observacaoId);
     }
 
+    // Anti-IDOR de 2º nível: a observação precisa pertencer ao aluno da URL.
     private Observacao buscar(UUID alunoId, UUID observacaoId) {
-        Observacao obs =
-                repository.findById(observacaoId).orElseThrow(ObservacaoNaoEncontradaException::new);
-        if (!obs.getAlunoId().equals(alunoId)) {
-            throw new ObservacaoNaoEncontradaException();
-        }
-        return obs;
-    }
-
-    private void exigirAutenticado(UsuarioAtual usuario) {
-        if (usuario == null || usuario.perfil() == null) {
-            throw new AcessoNegadoException("Usuario nao autenticado.");
-        }
+        return observacoes.findById(observacaoId).filter(obs -> obs.getAlunoId().equals(alunoId)).orElseThrow(ObservacaoNaoEncontradaException::new);
     }
 
     private void validarVersao(Observacao obs, Long versao) {

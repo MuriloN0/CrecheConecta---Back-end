@@ -9,21 +9,22 @@ public record DadosObservacao(String titulo, String conteudo) {
 
     public DadosObservacao {
         if (titulo == null || titulo.isBlank()) {
-            throw new RegraNegocioException("A observacao precisa de um titulo.");
+            throw new RegraNegocioException("A observação precisa de um título.");
         }
-        titulo = titulo.trim();
+
+        titulo = titulo.strip();
+
         if (titulo.length() > TITULO_MAX) {
-            throw new RegraNegocioException(
-                    "O titulo deve ter ate " + TITULO_MAX + " caracteres.");
+            throw new RegraNegocioException("O título deve ter até " + TITULO_MAX + " caracteres.");
         }
 
         if (conteudo != null) {
-            conteudo = conteudo.trim();
+            conteudo = conteudo.strip();
+
             if (conteudo.isBlank()) {
                 conteudo = null;
             } else if (conteudo.length() > CONTEUDO_MAX) {
-                throw new RegraNegocioException(
-                        "O conteudo deve ter ate " + CONTEUDO_MAX + " caracteres.");
+                throw new RegraNegocioException("O conteúdo deve ter até " + CONTEUDO_MAX + " caracteres.");
             }
         }
     }

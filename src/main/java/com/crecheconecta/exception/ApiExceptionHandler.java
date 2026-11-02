@@ -108,7 +108,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return resposta(
                 HttpStatus.NOT_FOUND,
                 "OBSERVACAO_NAO_ENCONTRADA",
-                "Observacao nao encontrada."
+                "Observação não encontrada."
         );
     }
 
