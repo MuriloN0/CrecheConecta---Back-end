@@ -18,8 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Service
 @PreAuthorize("hasRole('DIRECAO')")
@@ -31,13 +29,8 @@ public class AlunoResponsavelService {
     private final AuditoriaService auditoria;
     private final Clock clock;
 
-    public AlunoResponsavelService(
-            AlunoResponsavelRepository vinculos,
-            AlunoRepository alunos,
-            UsuarioRepository usuarios,
-            AuditoriaService auditoria,
-            Clock clock
-    ) {
+    public AlunoResponsavelService(AlunoResponsavelRepository vinculos, AlunoRepository alunos, UsuarioRepository usuarios, AuditoriaService auditoria, Clock clock) {
+
         this.vinculos = vinculos;
         this.alunos = alunos;
         this.usuarios = usuarios;
@@ -46,90 +39,52 @@ public class AlunoResponsavelService {
     }
 
     @Transactional
-    public AlunoResponsavelResponse vincular(
-            UUID alunoId,
-            UUID responsavelId,
-            UsuarioAtual solicitante
-    ) {
+    public AlunoResponsavelResponse vincular(UUID alunoId, UUID responsavelId, UsuarioAtual solicitante) {
+
         validarDirecao(solicitante);
 
         var aluno = buscarAlunoComBloqueio(alunoId);
 
         if (!aluno.isAtivo()) {
-            throw new RegraNegocioException(
-                    "Não é possível adicionar responsáveis "
-                            + "a um aluno inativo."
-            );
+
+            throw new RegraNegocioException("Não é possível vincular um responsável " + "a um aluno inativo.");
         }
 
-        usuarios.buscarPorIdComBloqueio(responsavelId)
-                .filter(usuario ->
-                        usuario.getPerfil() == Perfil.RESPONSAVEL
-                )
-                .orElseThrow(() -> new RegraNegocioException(
-                        "Responsável não encontrado."
-                ));
+        usuarios.buscarPorIdComBloqueio(responsavelId).filter(usuario -> usuario.getPerfil() == Perfil.RESPONSAVEL).orElseThrow(() -> new RegraNegocioException("Responsável não encontrado."));
 
-        if (vinculos
-                .existsByResponsavelIdAndEncerradoEmIsNull(
-                        responsavelId
-                )) {
-            throw new RegraNegocioException(
-                    "O responsável já possui um aluno vinculado."
-            );
+        if (vinculos.existsByAlunoIdAndEncerradoEmIsNull(alunoId)) {
+
+            throw new RegraNegocioException("O aluno já possui um responsável vinculado. " + "Encerre o vínculo anterior antes de continuar.");
         }
 
-        var atuais = vinculos
-                .findByAlunoIdAndEncerradoEmIsNullOrderByPosicaoAsc(
-                        alunoId
-                );
+        if (vinculos.existsByResponsavelIdAndEncerradoEmIsNull(responsavelId)) {
 
-        var ocupadas = atuais.stream()
-                .map(AlunoResponsavel::getPosicao)
-                .collect(Collectors.toSet());
-
-        int posicao = IntStream.rangeClosed(1, 5)
-                .filter(numero -> !ocupadas.contains(numero))
-                .findFirst()
-                .orElseThrow(() -> new RegraNegocioException(
-                        "O aluno já possui cinco responsáveis."
-                ));
+            throw new RegraNegocioException("O responsável já possui um aluno vinculado.");
+        }
 
         var vinculo = new AlunoResponsavel();
         vinculo.setAlunoId(alunoId);
         vinculo.setResponsavelId(responsavelId);
-        vinculo.setPosicao(posicao);
         vinculo.setCriadoEm(clock.instant());
 
         vinculos.saveAndFlush(vinculo);
 
-        auditoria.aposCommit(
-                "ALUNO_RESPONSAVEL_VINCULADO",
-                solicitante.id(),
-                vinculo.getId()
-        );
+        auditoria.aposCommit("ALUNO_RESPONSAVEL_VINCULADO", solicitante.id(), vinculo.getId());
 
         return AlunoResponsavelResponse.de(vinculo);
     }
 
     @Transactional(readOnly = true)
-    public List<AlunoResponsavelResponse> listar(
-            UUID alunoId,
-            UsuarioAtual solicitante
-    ) {
+    public List<AlunoResponsavelResponse> listar(UUID alunoId, UsuarioAtual solicitante) {
+
         validarDirecao(solicitante);
 
         if (!alunos.existsById(alunoId)) {
+
             throw new AlunoNaoEncontradoException();
         }
 
-        return vinculos
-                .findByAlunoIdAndEncerradoEmIsNullOrderByPosicaoAsc(
-                        alunoId
-                )
-                .stream()
-                .map(AlunoResponsavelResponse::de)
-                .toList();
+        return vinculos.findByAlunoIdAndEncerradoEmIsNullOrderByCriadoEmAsc(alunoId).stream().map(AlunoResponsavelResponse::de).toList();
     }
 
     @Transactional
@@ -163,7 +118,6 @@ public class AlunoResponsavelService {
     }
 
     private void validarDirecao(UsuarioAtual solicitante) {
-
         if (solicitante == null || solicitante.perfil() != Perfil.DIRECAO) {
 
             throw acessoNegado();

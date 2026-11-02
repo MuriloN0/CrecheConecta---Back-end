@@ -1,4 +1,4 @@
-package com.crecheconecta.controller.atividades;
+package com.crecheconecta.controller;
 
 import com.crecheconecta.controller.AtividadeController;
 import com.crecheconecta.dto.AtividadeResponseDTO;

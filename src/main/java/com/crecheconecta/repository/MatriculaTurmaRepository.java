@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import com.crecheconecta.entity.Aluno;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -56,4 +57,27 @@ public interface MatriculaTurmaRepository extends JpaRepository<MatriculaTurma, 
             @Param("alunoId") UUID alunoId,
             @Param("agora") Instant agora
     );
+
+    boolean existsByTurmaIdAndAlunoIdAndEncerradoEmIsNull(UUID turmaId, UUID alunoId);
+
+    @Query(
+            value = """
+            SELECT a
+            FROM Aluno a, MatriculaTurma m
+            WHERE m.alunoId = a.id
+              AND m.turmaId = :turmaId
+              AND m.encerradoEm IS NULL
+              AND a.ativo = TRUE
+            """,
+            countQuery = """
+            SELECT COUNT(a)
+            FROM Aluno a, MatriculaTurma m
+            WHERE m.alunoId = a.id
+              AND m.turmaId = :turmaId
+              AND m.encerradoEm IS NULL
+              AND a.ativo = TRUE
+            """
+    )
+
+    Page<Aluno> buscarAlunosAtuaisDaChamada(@Param("turmaId") UUID turmaId, Pageable pageable);
 }
