@@ -126,6 +126,8 @@ public class ProfessorService {
 
         professoresTurma.encerrarDoProfessor(professorId, agora);
 
+        sessoes.revogarTodasDoUsuario(professorId, agora);
+
         auditoria.aposCommit("PROFESSOR_INATIVADO", solicitante.id(), professor.getId());
 
         return ProfessorResponse.de(professor);
