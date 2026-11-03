@@ -28,8 +28,6 @@ As alterações na estrutura do banco serão controladas pelo Flyway, por meio d
 
 ## Integrações previstas
 
-- **ViaCEP:** consulta de CEP para preenchimento de endereços.
-- **Google Calendar:** sincronização de eventos e reuniões escolares.
 - **Resend:** envio de e-mails de recuperação de senha.
 
 ## Front-end
