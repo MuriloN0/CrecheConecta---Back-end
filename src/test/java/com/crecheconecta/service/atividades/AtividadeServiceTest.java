@@ -7,9 +7,11 @@ import com.crecheconecta.exception.AtividadeNaoEncontradaException;
 import com.crecheconecta.exception.RegraNegocioException;
 import com.crecheconecta.model.TipoAtividade;
 import com.crecheconecta.repository.AtividadeRepository;
+import com.crecheconecta.service.AtividadeAcessoService;
 import com.crecheconecta.service.AtividadeService;
 import com.crecheconecta.service.AtividadePrazoValidation;
 import com.crecheconecta.service.AtividadeTituloValidation;
+import com.crecheconecta.service.AuditoriaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,9 +19,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import static org.mockito.Mockito.mock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,7 +47,10 @@ class AtividadeServiceTest {
         atividadeService = new AtividadeService(
                 atividadeRepository,
                 new AtividadeTituloValidation(),
-                new AtividadePrazoValidation()
+                new AtividadePrazoValidation(),
+                mock(AtividadeAcessoService.class),
+                mock(AuditoriaService.class),
+                Clock.fixed(java.time.Instant.parse("2026-11-02T12:00:00Z"), ZoneOffset.UTC)
         );
     }
 

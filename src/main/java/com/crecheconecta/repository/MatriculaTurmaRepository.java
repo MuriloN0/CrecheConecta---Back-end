@@ -17,6 +17,10 @@ public interface MatriculaTurmaRepository extends JpaRepository<MatriculaTurma, 
 
     boolean existsByAlunoIdAndEncerradoEmIsNull(UUID alunoId);
 
+    // Features dos pais: matrícula ATUAL do aluno (no máximo 1, garantido por uk_matricula_atual_aluno).
+    Optional<MatriculaTurma> findByAlunoIdAndEncerradoEmIsNull(UUID alunoId);
+
+
     Optional<MatriculaTurma> findByIdAndTurmaId(UUID id, UUID turmaI);
 
     Page<MatriculaTurma> findByTurmaId(UUID turmaId, Pageable pageable);

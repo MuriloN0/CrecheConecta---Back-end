@@ -8,10 +8,9 @@ import com.crecheconecta.security.UsuarioAtual;
 import com.crecheconecta.security.UsuarioAutenticado;
 import com.crecheconecta.service.FichaSaudeService;
 import jakarta.validation.Valid;
-import java.net.URI;
-import java.util.List;
-import java.util.UUID;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,87 +21,59 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Informações relevantes (ficha de saúde) do aluno.
+ * Escrita: só o responsável. Leitura: responsável, direção e professor (a regra fina fica no service).
+ */
 @RestController
 @RequestMapping("/api/alunos/{alunoId}/fichas-saude")
 public class FichaSaudeController {
 
-    private final FichaSaudeService service;
+    private static final String LEITURA = "hasAnyRole('RESPONSAVEL', 'DIRECAO', 'PROFESSOR')";
+    private static final String ESCRITA = "hasRole('RESPONSAVEL')";
 
-    public FichaSaudeController(FichaSaudeService service) {
-        this.service = service;
+    private final FichaSaudeService fichas;
+
+    public FichaSaudeController(FichaSaudeService fichas) {
+        this.fichas = fichas;
     }
 
     @PostMapping
-    public ResponseEntity<Void> cadastrar(
-            @PathVariable UUID alunoId,
-            @Valid @RequestBody FichaSaudeRequest dto,
-            @AuthenticationPrincipal UsuarioAutenticado autenticado
-    ) {
-        var usuario = UsuarioAtual.de(autenticado);
-
-        UUID id = service.cadastrar(
-                alunoId,
-                dto.paraDominio(),
-                usuario
-        );
-
-        return ResponseEntity.created(
-                URI.create("/api/alunos/" + alunoId + "/fichas-saude/" + id)
-        ).build();
+    @PreAuthorize(ESCRITA)
+    public ResponseEntity<Void> cadastrar(@PathVariable UUID alunoId, @Valid @RequestBody FichaSaudeRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+        UUID id = fichas.cadastrar(alunoId, request.paraDominio(), UsuarioAtual.de(autenticado));
+        return ResponseEntity.created(URI.create("/api/alunos/" + alunoId + "/fichas-saude/" + id)).cacheControl(CacheControl.noStore()).build();
     }
 
     @GetMapping
-    public List<FichaSaudeResumoResponse> listar(
-            @PathVariable UUID alunoId,
-            @AuthenticationPrincipal UsuarioAutenticado autenticado
-    ) {
-        return service.listar(
-                alunoId,
-                UsuarioAtual.de(autenticado)
-        );
+    @PreAuthorize(LEITURA)
+    public ResponseEntity<List<FichaSaudeResumoResponse>> listar(@PathVariable UUID alunoId, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+        var resposta = fichas.listar(alunoId, UsuarioAtual.de(autenticado));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
     @GetMapping("/{fichaId}")
-    public FichaSaudeResponse visualizar(
-            @PathVariable UUID alunoId,
-            @PathVariable UUID fichaId,
-            @AuthenticationPrincipal UsuarioAutenticado autenticado
-    ) {
-        return service.visualizar(
-                alunoId,
-                fichaId,
-                UsuarioAtual.de(autenticado)
-        );
+    @PreAuthorize(LEITURA)
+    public ResponseEntity<FichaSaudeResponse> visualizar(@PathVariable UUID alunoId, @PathVariable UUID fichaId, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+        var resposta = fichas.visualizar(alunoId, fichaId, UsuarioAtual.de(autenticado));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
     @PutMapping("/{fichaId}")
-    public FichaSaudeResponse atualizar(
-            @PathVariable UUID alunoId,
-            @PathVariable UUID fichaId,
-            @Valid @RequestBody AtualizarFichaSaudeRequest dto,
-            @AuthenticationPrincipal UsuarioAutenticado autenticado
-    ) {
-        return service.atualizar(
-                alunoId,
-                fichaId,
-                dto.paraDominio(),
-                dto.versao(),
-                UsuarioAtual.de(autenticado)
-        );
+    @PreAuthorize(ESCRITA)
+    public ResponseEntity<FichaSaudeResponse> atualizar(@PathVariable UUID alunoId, @PathVariable UUID fichaId, @Valid @RequestBody AtualizarFichaSaudeRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+        var resposta = fichas.atualizar(alunoId, fichaId, request.paraDominio(), request.versao(), UsuarioAtual.de(autenticado));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
     @DeleteMapping("/{fichaId}")
-    public ResponseEntity<Void> excluir(
-            @PathVariable UUID alunoId,
-            @PathVariable UUID fichaId,
-            @AuthenticationPrincipal UsuarioAutenticado autenticado
-    ) {
-        service.excluir(
-                alunoId,
-                fichaId,
-                UsuarioAtual.de(autenticado)
-        );
-
+    @PreAuthorize(ESCRITA)
+    public ResponseEntity<Void> excluir(@PathVariable UUID alunoId, @PathVariable UUID fichaId, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+        fichas.excluir(alunoId, fichaId, UsuarioAtual.de(autenticado));
         return ResponseEntity.noContent().build();
     }
 }

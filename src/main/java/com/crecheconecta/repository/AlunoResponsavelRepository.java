@@ -16,4 +16,10 @@ public interface AlunoResponsavelRepository extends JpaRepository<AlunoResponsav
     Optional<AlunoResponsavel> findByIdAndAlunoId(UUID id, UUID alunoId);
 
     boolean existsByAlunoIdAndEncerradoEmIsNull(UUID alunoId);
+
+    // Features dos pais: lista os vínculos ATUAIS (não encerrados) de um responsável.
+    List<AlunoResponsavel> findByResponsavelIdAndEncerradoEmIsNull(UUID responsavelId);
+
+    // Features dos pais: "este responsável tem vínculo atual com este aluno?" (anti-IDOR).
+    boolean existsByAlunoIdAndResponsavelIdAndEncerradoEmIsNull(UUID alunoId, UUID responsavelId);
 }

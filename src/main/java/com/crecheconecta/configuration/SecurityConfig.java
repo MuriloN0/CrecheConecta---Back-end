@@ -32,8 +32,8 @@ public class SecurityConfig {
                                 "/api/cadastro/professores/concluir", "/api/professores/*/aprovar", "/api/professores/*/rejeitar", "/api/professores/*", "/api/professores/*/inativar", "/api/alunos", "/api/alunos/*",
                                 "/api/alunos/*/inativar", "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar", "/api/turmas", "/api/turmas/*", "/api/turmas/*/inativar", "/api/turmas/*/matriculas",
                                 "/api/turmas/*/matriculas/*/encerrar", "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar", "/api/direcao/me/inativar", "/api/direcao/convites", "/api/cadastro/direcao/consultar-convite",
-                                "/api/cadastro/direcao/concluir", "/api/direcao/me", "/api/comunicados", "/api/comunicados/*", "/api/comunicados/*/inativar", "/api/turmas/*/chamadas/*/alunos/*"))
-
+                                "/api/cadastro/direcao/concluir", "/api/direcao/me", "/api/comunicados", "/api/comunicados/*", "/api/comunicados/*/inativar", "/api/turmas/*/chamadas/*/alunos/*",
+                                "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*"))
 
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
@@ -86,10 +86,30 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout", "/api/termo/aceite")
                         .authenticated()
 
-                        // Fichas de saúde: acesso restrito à direção.
-                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
-                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/fichas-saude").hasRole("DIRECAO").requestMatchers(HttpMethod.PUT, "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
-                        .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/fichas-saude/*").hasRole("DIRECAO")
+                        // Informações relevantes (fichas de saúde): o responsável escreve; responsável, direção e professor leem.
+                        // A regra fina (filho do pai / professor da turma) fica no FichaSaudeService.
+                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*").hasAnyRole("RESPONSAVEL", "DIRECAO", "PROFESSOR")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/fichas-saude").hasRole("RESPONSAVEL")
+                        .requestMatchers(HttpMethod.PUT, "/api/alunos/*/fichas-saude/*").hasRole("RESPONSAVEL")
+                        .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/fichas-saude/*").hasRole("RESPONSAVEL")
+
+                        // Observacoes do filho: acesso dos pais (perfil RESPONSAVEL).
+                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*").hasRole("RESPONSAVEL")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/observacoes").hasRole("RESPONSAVEL")
+                        .requestMatchers(HttpMethod.PUT, "/api/alunos/*/observacoes/*").hasRole("RESPONSAVEL")
+                        .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/observacoes/*").hasRole("RESPONSAVEL")
+                        // Dados do filho (Perfil da Criança): só leitura, só pais (perfil RESPONSAVEL).
+                        .requestMatchers(HttpMethod.GET, "/api/meus-filhos", "/api/meus-filhos/*").hasRole("RESPONSAVEL")
+                        // Atividades para casa do filho: só leitura, só pais.
+                        .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/atividades-casa").hasRole("RESPONSAVEL")
+                        // Faltas e presenças (chamada) do filho: só leitura, só pais.
+                        .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/chamada").hasRole("RESPONSAVEL")
+                        // Diário de rotina do filho: só leitura, só pais.
+                        .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/diario").hasRole("RESPONSAVEL")
+                        // Mala virtual do filho: só leitura, só pais.
+                        .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/mala").hasRole("RESPONSAVEL")
+
+
                         .requestMatchers("/api/atividades/**").authenticated()
                         .anyRequest()
                         .denyAll()
