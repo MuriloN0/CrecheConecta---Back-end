@@ -1,106 +1,186 @@
 package com.crecheconecta.service;
 
+import com.crecheconecta.dto.AtividadeTurmaResponse;
 import com.crecheconecta.dto.AtualizarAtividadeRequestDTO;
 import com.crecheconecta.dto.NovaAtividadeRequestDTO;
 import com.crecheconecta.entity.AtividadeEntity;
 import com.crecheconecta.exception.AtividadeNaoEncontradaException;
+import com.crecheconecta.exception.RegraNegocioException;
 import com.crecheconecta.model.TipoAtividade;
 import com.crecheconecta.repository.AtividadeRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.LocalDate;
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 
 @Service
+@PreAuthorize("hasAnyRole('DIRECAO', 'PROFESSOR', 'RESPONSAVEL')")
 public class AtividadeService {
 
-    private final AtividadeRepository atividadeRepository;
+    private final AtividadeRepository atividades;
     private final AtividadeTituloValidation tituloValidation;
     private final AtividadePrazoValidation prazoValidation;
+    private final AtividadeAcessoService acesso;
+    private final AuditoriaService auditoria;
+    private final Clock clock;
 
-    public AtividadeService(
-            AtividadeRepository atividadeRepository,
-            AtividadeTituloValidation tituloValidation,
-            AtividadePrazoValidation prazoValidation
-    ) {
-        this.atividadeRepository = atividadeRepository;
+    public AtividadeService(AtividadeRepository atividades, AtividadeTituloValidation tituloValidation, AtividadePrazoValidation prazoValidation, AtividadeAcessoService acesso, AuditoriaService auditoria, Clock clock) {
+
+        this.atividades = atividades;
         this.tituloValidation = tituloValidation;
         this.prazoValidation = prazoValidation;
+        this.acesso = acesso;
+        this.auditoria = auditoria;
+        this.clock = clock;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AtividadeTurmaResponse> listarTurmas() {
+
+        var usuario = acesso.usuarioAtual();
+
+        return acesso.turmasPermitidas(usuario).stream().map(AtividadeTurmaResponse::de).toList();
     }
 
     @Transactional
+    @PreAuthorize("hasRole('PROFESSOR')")
     public UUID criar(UUID turmaId, NovaAtividadeRequestDTO request) {
+
+        var usuario = acesso.usuarioAtual();
+
+        acesso.exigirProfessor(usuario);
+        acesso.validarTurma(turmaId, usuario);
+
+        acesso.exigirAutor(request.professorId(), usuario);
+
+        if (request.tipo() == null) {
+
+            throw new RegraNegocioException("O tipo da atividade é obrigatório.");
+        }
+
         tituloValidation.validar(request.titulo());
         prazoValidation.validar(request.tipo(), request.prazoConclusao());
 
-        AtividadeEntity atividade = new AtividadeEntity();
+        var atividade = new AtividadeEntity();
         atividade.setId(UUID.randomUUID());
         atividade.setTurmaId(turmaId);
-        atividade.setProfessorId(request.professorId());
+        atividade.setProfessorId(usuario.id());
         atividade.setTipo(request.tipo());
         atividade.setTitulo(request.titulo().trim());
         atividade.setDescricao(request.descricao());
-        atividade.setDataCriacao(Instant.now());
-        atividade.setPrazoConclusao(request.prazoConclusao());
+        atividade.setDataCriacao(clock.instant());
+        atividade.setPrazoConclusao(request.tipo() == TipoAtividade.CASA ? request.prazoConclusao() : null);
 
-        atividadeRepository.save(atividade);
+        atividades.save(atividade);
+
+        auditoria.aposCommit("ATIVIDADE_CADASTRADA", usuario.id(), atividade.getId());
 
         return atividade.getId();
     }
 
     @Transactional
+    @PreAuthorize("hasRole('PROFESSOR')")
     public void atualizar(UUID id, AtualizarAtividadeRequestDTO request) {
-        AtividadeEntity atividade = buscarAtividadePorId(id);
 
-        TipoAtividade tipo = request.tipo() != null ? request.tipo() : atividade.getTipo();
-        String titulo = request.titulo() != null ? request.titulo() : atividade.getTitulo();
-        LocalDate prazo = request.prazoConclusao() != null ? request.prazoConclusao() : atividade.getPrazoConclusao();
+        var usuario = acesso.usuarioAtual();
+        acesso.exigirProfessor(usuario);
+
+        var atividade = buscarAtividadePorId(id);
+
+        acesso.validarTurma(atividade.getTurmaId(), usuario);
+        acesso.exigirAutor(atividade.getProfessorId(), usuario);
+
+        var tipo = request.tipo() != null ? request.tipo() : atividade.getTipo();
+
+        var titulo = request.titulo() != null ? request.titulo() : atividade.getTitulo();
+
+        var prazo = request.prazoConclusao() != null ? request.prazoConclusao() : atividade.getPrazoConclusao();
+
+        if (tipo == TipoAtividade.DIA) {
+
+            prazo = null;
+        }
 
         tituloValidation.validar(titulo);
         prazoValidation.validar(tipo, prazo);
 
         atividade.setTipo(tipo);
         atividade.setTitulo(titulo.trim());
-        if (request.descricao() != null) {
-            atividade.setDescricao(request.descricao());
-        }
         atividade.setPrazoConclusao(prazo);
 
-        atividadeRepository.save(atividade);
+        if (request.descricao() != null) {
+
+            atividade.setDescricao(request.descricao());
+        }
+
+        atividades.save(atividade);
+
+        auditoria.aposCommit("ATIVIDADE_ATUALIZADA", usuario.id(), atividade.getId());
     }
 
     @Transactional
+    @PreAuthorize("hasRole('PROFESSOR')")
     public void deletar(UUID id) {
-        if (!atividadeRepository.existsById(id)) {
-            throw new AtividadeNaoEncontradaException();
-        }
-        atividadeRepository.deleteById(id);
+
+        var usuario = acesso.usuarioAtual();
+        acesso.exigirProfessor(usuario);
+
+        var atividade = buscarAtividadePorId(id);
+
+        acesso.validarTurma(atividade.getTurmaId(), usuario);
+        acesso.exigirAutor(atividade.getProfessorId(), usuario);
+
+        atividades.delete(atividade);
+
+        auditoria.aposCommit("ATIVIDADE_EXCLUIDA", usuario.id(), atividade.getId());
     }
 
     @Transactional(readOnly = true)
     public AtividadeEntity buscarPorId(UUID id) {
-        return buscarAtividadePorId(id);
+
+        var usuario = acesso.usuarioAtual();
+        var atividade = buscarAtividadePorId(id);
+
+        acesso.validarTurma(atividade.getTurmaId(), usuario);
+
+        return atividade;
     }
 
     @Transactional(readOnly = true)
     public List<AtividadeEntity> listar(UUID turmaId, TipoAtividade tipo) {
-        if (turmaId != null && tipo != null) {
-            return atividadeRepository.findByTurmaIdAndTipo(turmaId, tipo);
-        }
+
+        var usuario = acesso.usuarioAtual();
+
+        List<UUID> turmaIds;
+
         if (turmaId != null) {
-            return atividadeRepository.findByTurmaId(turmaId);
+
+            acesso.validarTurma(turmaId, usuario);
+            turmaIds = List.of(turmaId);
+        } else {
+
+            turmaIds = acesso.turmasPermitidas(usuario).stream()
+                    .map(turma -> turma.getId()).toList();
         }
+
+        if (turmaIds.isEmpty()) {
+
+            return List.of();
+        }
+
         if (tipo != null) {
-            return atividadeRepository.findByTipo(tipo);
+
+            return atividades.findByTurmaIdInAndTipoOrderByDataCriacaoDescIdAsc(turmaIds, tipo);
         }
-        return atividadeRepository.findAll();
+
+        return atividades.findByTurmaIdInOrderByDataCriacaoDescIdAsc(turmaIds);
     }
 
     private AtividadeEntity buscarAtividadePorId(UUID id) {
-        return atividadeRepository.findById(id)
-                .orElseThrow(AtividadeNaoEncontradaException::new);
+
+        return atividades.findById(id).orElseThrow(AtividadeNaoEncontradaException::new);
     }
 }

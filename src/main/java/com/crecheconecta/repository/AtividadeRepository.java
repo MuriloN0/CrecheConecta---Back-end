@@ -4,11 +4,19 @@ import com.crecheconecta.entity.AtividadeEntity;
 import com.crecheconecta.model.TipoAtividade;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 public interface AtividadeRepository extends JpaRepository<AtividadeEntity, UUID> {
+
     List<AtividadeEntity> findByTurmaId(UUID turmaId);
+
     List<AtividadeEntity> findByTipo(TipoAtividade tipo);
+
     List<AtividadeEntity> findByTurmaIdAndTipo(UUID turmaId, TipoAtividade tipo);
+
+    List<AtividadeEntity> findByTurmaIdInOrderByDataCriacaoDescIdAsc(Collection<UUID> turmaIds);
+
+    List<AtividadeEntity> findByTurmaIdInAndTipoOrderByDataCriacaoDescIdAsc(Collection<UUID> turmaIds, TipoAtividade tipo);
 }
