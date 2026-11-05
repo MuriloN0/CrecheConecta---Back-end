@@ -1,22 +1,22 @@
 package com.crecheconecta.service;
 
+import com.crecheconecta.entity.Aluno;
 import com.crecheconecta.entity.FichaSaude;
 import com.crecheconecta.entity.Perfil;
 import com.crecheconecta.entity.Usuario;
-import com.crecheconecta.exception.AcessoNegadoException;
 import com.crecheconecta.exception.AlunoNaoEncontradoException;
 import com.crecheconecta.exception.ConflitoVersaoException;
 import com.crecheconecta.exception.FichaSaudeNaoEncontradaException;
 import com.crecheconecta.model.DadosFichaSaude;
 import com.crecheconecta.repository.AlunoRepository;
 import com.crecheconecta.repository.FichaSaudeRepository;
+import com.crecheconecta.repository.TurmaProfessorRepository;
 import com.crecheconecta.repository.UsuarioRepository;
 import com.crecheconecta.security.UsuarioAtual;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -27,42 +27,45 @@ import java.util.UUID;
 
 import static com.crecheconecta.service.DadosAutenticacaoTest.usuario;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Testes unitários do FichaSaudeService (regra do portal dos pais):
+ * escrita só do RESPONSAVEL do aluno; leitura de RESPONSAVEL, DIRECAO e PROFESSOR da turma.
+ * O "porteiro" VinculoResponsavelService é mockado.
+ */
 class FichaSaudeServiceTest {
 
-    private final FichaSaudeRepository repository =
-            mock(FichaSaudeRepository.class);
+    private final FichaSaudeRepository repository = mock(FichaSaudeRepository.class);
+    private final VinculoResponsavelService acessoResponsavel = mock(VinculoResponsavelService.class);
+    private final AlunoRepository alunos = mock(AlunoRepository.class);
+    private final UsuarioRepository usuarios = mock(UsuarioRepository.class);
+    private final TurmaProfessorRepository turmasProfessores = mock(TurmaProfessorRepository.class);
+    private final CriptografiaService cripto = mock(CriptografiaService.class);
+    private final AuditoriaService auditoria = mock(AuditoriaService.class);
 
-    private final CriptografiaService cripto =
-            mock(CriptografiaService.class);
+    private final Instant agora = Instant.parse("2026-11-02T12:00:00Z");
 
-    private final AuditoriaService auditoria =
-            mock(AuditoriaService.class);
+    private final FichaSaudeService service = new FichaSaudeService(
+            repository,
+            acessoResponsavel,
+            alunos,
+            usuarios,
+            turmasProfessores,
+            cripto,
+            auditoria,
+            Clock.fixed(agora, ZoneOffset.UTC)
+    );
 
-    private final AlunoRepository alunos =
-            mock(AlunoRepository.class);
+    private final Usuario responsavel = usuario(Perfil.RESPONSAVEL);
+    private final UsuarioAtual pai = new UsuarioAtual(responsavel.getId(), Perfil.RESPONSAVEL);
 
-    private final UsuarioRepository usuarios =
-            mock(UsuarioRepository.class);
+    private final Usuario diretorUsuario = usuario(Perfil.DIRECAO);
+    private final UsuarioAtual direcao = new UsuarioAtual(diretorUsuario.getId(), Perfil.DIRECAO);
 
-    private final Instant agora =
-            Instant.parse("2026-11-02T12:00:00Z");
-
-    private final FichaSaudeService service =
-            new FichaSaudeService(
-                    repository,
-                    cripto,
-                    auditoria,
-                    Clock.fixed(agora, ZoneOffset.UTC),
-                    alunos,
-                    usuarios
-            );
-
-    private final Usuario diretor = usuario(Perfil.DIRECAO);
-
-    private final UsuarioAtual solicitante =
-            new UsuarioAtual(diretor.getId(), Perfil.DIRECAO);
+    private final Usuario professorUsuario = usuario(Perfil.PROFESSOR);
+    private final UsuarioAtual professor = new UsuarioAtual(professorUsuario.getId(), Perfil.PROFESSOR);
 
     private final UUID alunoId = UUID.randomUUID();
     private final FichaSaude ficha = new FichaSaude();
@@ -77,247 +80,154 @@ class FichaSaudeServiceTest {
         ficha.setDataAtualizacao(ficha.getDataCriacao());
     }
 
+    // ---------- escrita (RESPONSAVEL) ----------
+
     @Test
     void deveCifrarObservacoesAntesDePersistir() {
-        autorizar();
+        when(acessoResponsavel.exigirResponsavelDoAluno(pai, alunoId)).thenReturn(new Aluno());
+        when(cripto.cifrar("Observação")).thenReturn("cifrado");
 
-        when(cripto.cifrar("Observação"))
-                .thenReturn("cifrado");
-
-        var id = service.cadastrar(
-                alunoId,
-                new DadosFichaSaude("Ficha", "Observação"),
-                solicitante
-        );
+        var id = service.cadastrar(alunoId, new DadosFichaSaude("Ficha", "Observação"), pai);
 
         var captor = ArgumentCaptor.forClass(FichaSaude.class);
-        verify(repository).save(captor.capture());
-
-        assertEquals(
-                "cifrado",
-                captor.getValue().getObservacoes()
-        );
-
-        assertEquals(
-                alunoId,
-                captor.getValue().getAlunoId()
-        );
-
-        assertEquals(
-                agora,
-                captor.getValue().getDataCriacao()
-        );
-
-        verify(auditoria).aposCommit(
-                "FICHA_CADASTRADA",
-                diretor.getId(),
-                id
-        );
+        verify(repository).saveAndFlush(captor.capture());
+        assertEquals("cifrado", captor.getValue().getObservacoes());
+        assertEquals(alunoId, captor.getValue().getAlunoId());
+        assertEquals(agora, captor.getValue().getDataCriacao());
+        verify(auditoria).aposCommit("FICHA_CADASTRADA", responsavel.getId(), id);
     }
 
     @Test
-    void deveDecifrarSomenteNaVisualizacao() {
-        prepararFicha();
+    void deveNegarCadastroDeQuemNaoEhResponsavelDoAluno() {
+        when(acessoResponsavel.exigirResponsavelDoAluno(any(), any())).thenThrow(new AlunoNaoEncontradoException());
 
-        when(cripto.decifrar("conteudo-cifrado"))
-                .thenReturn("Observação");
+        assertThrows(AlunoNaoEncontradoException.class,
+                () -> service.cadastrar(alunoId, new DadosFichaSaude("Ficha", "Obs"), pai));
 
-        var resposta = service.visualizar(
-                alunoId,
-                ficha.getId(),
-                solicitante
-        );
-
-        assertEquals("Observação", resposta.observacoes());
-
-        verify(auditoria).registrar(
-                "FICHA_CONSULTADA",
-                diretor.getId(),
-                ficha.getId()
-        );
-    }
-
-    @Test
-    void deveListarResumosSemDecifrarObservacoes() {
-        autorizar();
-
-        when(repository.findByAlunoId(alunoId))
-                .thenReturn(List.of(ficha));
-
-        assertEquals(
-                1,
-                service.listar(alunoId, solicitante).size()
-        );
-
+        verify(repository, never()).saveAndFlush(any());
         verifyNoInteractions(cripto);
     }
 
     @Test
     void deveAtualizarCifrandoNovasObservacoes() {
-        prepararFicha();
-
-        when(cripto.cifrar("Nova observação"))
-                .thenReturn("novo-cifrado");
-
-        when(cripto.decifrar("novo-cifrado"))
-                .thenReturn("Nova observação");
+        when(acessoResponsavel.exigirResponsavelDoAluno(pai, alunoId)).thenReturn(new Aluno());
+        when(repository.findById(ficha.getId())).thenReturn(Optional.of(ficha));
+        when(cripto.cifrar("Nova observação")).thenReturn("novo-cifrado");
+        when(cripto.decifrar("novo-cifrado")).thenReturn("Nova observação");
 
         var criadoEm = ficha.getDataCriacao();
 
-        var resposta = service.atualizar(
-                alunoId,
-                ficha.getId(),
-                new DadosFichaSaude(
-                        "Novo nome",
-                        "Nova observação"
-                ),
-                0L,
-                solicitante
-        );
+        var resposta = service.atualizar(alunoId, ficha.getId(), new DadosFichaSaude("Novo nome", "Nova observação"), 0L, pai);
 
-        assertEquals(
-                "Nova observação",
-                resposta.observacoes()
-        );
-
-        assertEquals(
-                "novo-cifrado",
-                ficha.getObservacoes()
-        );
-
+        assertEquals("Nova observação", resposta.observacoes());
+        assertEquals("novo-cifrado", ficha.getObservacoes());
         assertEquals(criadoEm, ficha.getDataCriacao());
         assertEquals(agora, ficha.getDataAtualizacao());
-
-        verify(repository).flush();
+        verify(repository).saveAndFlush(ficha);
     }
 
     @Test
     void deveRejeitarVersaoAntigaSemAlterarFicha() {
-        prepararFicha();
+        when(acessoResponsavel.exigirResponsavelDoAluno(pai, alunoId)).thenReturn(new Aluno());
+        when(repository.findById(ficha.getId())).thenReturn(Optional.of(ficha));
 
-        assertThrows(
-                ConflitoVersaoException.class,
-                () -> service.atualizar(
-                        alunoId,
-                        ficha.getId(),
-                        new DadosFichaSaude(
-                                "Novo",
-                                "Observação"
-                        ),
-                        1L,
-                        solicitante
-                )
-        );
+        assertThrows(ConflitoVersaoException.class,
+                () -> service.atualizar(alunoId, ficha.getId(), new DadosFichaSaude("Novo", "Observação"), 1L, pai));
 
         assertEquals("Ficha", ficha.getNome());
-
         verifyNoInteractions(cripto, auditoria);
-        verify(repository, never()).flush();
+        verify(repository, never()).saveAndFlush(any());
     }
 
     @Test
     void deveImpedirAcessoAFichaDeOutroAluno() {
-        prepararFicha();
+        when(acessoResponsavel.exigirResponsavelDoAluno(pai, alunoId)).thenReturn(new Aluno());
         ficha.setAlunoId(UUID.randomUUID());
+        when(repository.findById(ficha.getId())).thenReturn(Optional.of(ficha));
 
-        assertThrows(
-                FichaSaudeNaoEncontradaException.class,
-                () -> service.visualizar(
-                        alunoId,
-                        ficha.getId(),
-                        solicitante
-                )
-        );
+        assertThrows(FichaSaudeNaoEncontradaException.class,
+                () -> service.visualizar(alunoId, ficha.getId(), pai));
 
-        verifyNoInteractions(cripto, auditoria);
+        verifyNoInteractions(cripto);
     }
 
     @Test
     void deveExcluirSomenteFichaLocalizadaDoAluno() {
-        prepararFicha();
+        when(acessoResponsavel.exigirResponsavelDoAluno(pai, alunoId)).thenReturn(new Aluno());
+        when(repository.findById(ficha.getId())).thenReturn(Optional.of(ficha));
 
-        service.excluir(
-                alunoId,
-                ficha.getId(),
-                solicitante
-        );
+        service.excluir(alunoId, ficha.getId(), pai);
 
         verify(repository).delete(ficha);
+        verify(auditoria).aposCommit("FICHA_EXCLUIDA", responsavel.getId(), ficha.getId());
+    }
 
-        verify(auditoria).aposCommit(
-                "FICHA_EXCLUIDA",
-                diretor.getId(),
-                ficha.getId()
-        );
+    // ---------- leitura (RESPONSAVEL, DIRECAO, PROFESSOR) ----------
+
+    @Test
+    void responsavelDeveDecifrarSomenteNaVisualizacao() {
+        when(acessoResponsavel.exigirResponsavelDoAluno(pai, alunoId)).thenReturn(new Aluno());
+        when(repository.findById(ficha.getId())).thenReturn(Optional.of(ficha));
+        when(cripto.decifrar("conteudo-cifrado")).thenReturn("Observação");
+
+        var resposta = service.visualizar(alunoId, ficha.getId(), pai);
+
+        assertEquals("Observação", resposta.observacoes());
+        verify(auditoria).registrar("FICHA_CONSULTADA", responsavel.getId(), ficha.getId());
     }
 
     @Test
-    void deveRejeitarAlunoInexistente() {
-        when(usuarios.findById(diretor.getId()))
-                .thenReturn(Optional.of(diretor));
+    void direcaoAtivaDeveListarFichasDeQualquerAluno() {
+        when(usuarios.findById(diretorUsuario.getId())).thenReturn(Optional.of(diretorUsuario));
+        when(alunos.existsById(alunoId)).thenReturn(true);
+        when(repository.findByAlunoId(alunoId)).thenReturn(List.of(ficha));
 
-        assertThrows(
-                AlunoNaoEncontradoException.class,
-                () -> service.listar(
-                        alunoId,
-                        solicitante
-                )
-        );
+        assertEquals(1, service.listar(alunoId, direcao).size());
 
-        verifyNoInteractions(repository, cripto);
+        verifyNoInteractions(cripto);
+        verify(auditoria).registrar("FICHAS_LISTADAS", diretorUsuario.getId(), alunoId);
     }
 
-    @ParameterizedTest
-    @EnumSource(
-            value = Perfil.class,
-            names = {"PROFESSOR", "RESPONSAVEL"}
-    )
-    void deveNegarOutrosPerfis(Perfil perfil) {
-        assertThrows(
-                AcessoNegadoException.class,
-                () -> service.visualizar(
-                        alunoId,
-                        ficha.getId(),
-                        new UsuarioAtual(
-                                UUID.randomUUID(),
-                                perfil
-                        )
-                )
-        );
+    @Test
+    void direcaoParaAlunoInexistenteDeveDar404() {
+        when(usuarios.findById(diretorUsuario.getId())).thenReturn(Optional.of(diretorUsuario));
+        when(alunos.existsById(alunoId)).thenReturn(false);
+
+        assertThrows(AlunoNaoEncontradoException.class, () -> service.listar(alunoId, direcao));
+
+        verify(repository, never()).findByAlunoId(any());
+    }
+
+    @Test
+    void direcaoInativaDeveSerNegada() {
+        diretorUsuario.setAtivo(false);
+        when(usuarios.findById(diretorUsuario.getId())).thenReturn(Optional.of(diretorUsuario));
+
+        assertThrows(AccessDeniedException.class, () -> service.listar(alunoId, direcao));
 
         verifyNoInteractions(repository, cripto);
     }
 
     @Test
-    void deveNegarDiretorInativo() {
-        diretor.setAtivo(false);
+    void professorDaTurmaDoAlunoDevePoderLer() {
+        var turmaId = UUID.randomUUID();
+        when(usuarios.findById(professorUsuario.getId())).thenReturn(Optional.of(professorUsuario));
+        when(acessoResponsavel.turmaAtualDoAluno(alunoId)).thenReturn(Optional.of(turmaId));
+        when(turmasProfessores.existsByTurmaIdAndProfessorIdAndEncerradoEmIsNull(turmaId, professorUsuario.getId())).thenReturn(true);
+        when(repository.findByAlunoId(alunoId)).thenReturn(List.of(ficha));
 
-        when(usuarios.findById(diretor.getId()))
-                .thenReturn(Optional.of(diretor));
-
-        assertThrows(
-                AcessoNegadoException.class,
-                () -> service.listar(
-                        alunoId,
-                        solicitante
-                )
-        );
-
-        verifyNoInteractions(repository, cripto);
+        assertEquals(1, service.listar(alunoId, professor).size());
     }
 
-    private void autorizar() {
-        when(usuarios.findById(diretor.getId()))
-                .thenReturn(Optional.of(diretor));
+    @Test
+    void professorDeOutraTurmaDeveDar404() {
+        var turmaId = UUID.randomUUID();
+        when(usuarios.findById(professorUsuario.getId())).thenReturn(Optional.of(professorUsuario));
+        when(acessoResponsavel.turmaAtualDoAluno(alunoId)).thenReturn(Optional.of(turmaId));
+        when(turmasProfessores.existsByTurmaIdAndProfessorIdAndEncerradoEmIsNull(turmaId, professorUsuario.getId())).thenReturn(false);
 
-        when(alunos.existsById(alunoId))
-                .thenReturn(true);
-    }
+        assertThrows(AlunoNaoEncontradoException.class, () -> service.listar(alunoId, professor));
 
-    private void prepararFicha() {
-        autorizar();
-
-        when(repository.findById(ficha.getId()))
-                .thenReturn(Optional.of(ficha));
+        verify(repository, never()).findByAlunoId(any());
     }
 }
