@@ -114,6 +114,7 @@ public class SecurityConfig {
                         .anyRequest()
                         .denyAll()
                 )
+                .cors(org.springframework.security.config.Customizer.withDefaults())
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, exception) -> RespostaErroSeguranca.naoAutenticado(response))
                         .accessDeniedHandler((request, response, exception) -> RespostaErroSeguranca.acessoNegado(response))
