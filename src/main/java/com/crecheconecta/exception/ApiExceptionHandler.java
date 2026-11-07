@@ -357,4 +357,12 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
         return resposta(HttpStatus.NOT_FOUND, "ITEM_MALA_NAO_ENCONTRADO", exception.getMessage());
     }
+
+    @ExceptionHandler(SolicitacaoMaterialNaoEncontradaException.class)
+    public ResponseEntity<ProblemDetail> tratarSolicitacaoMaterialNaoEncontrada(SolicitacaoMaterialNaoEncontradaException exception) {
+
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(HttpStatus.NOT_FOUND, "SOLICITACAO_MATERIAL_NAO_ENCONTRADA", exception.getMessage());
+    }
 }
