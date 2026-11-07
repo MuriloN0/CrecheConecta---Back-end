@@ -58,9 +58,8 @@ class ChamadaServiceValidacaoTest {
 
     private final ChamadaService service =
             new ChamadaService(
-                    usuarios,
+                    new VinculoProfessorService(usuarios, professores),
                     turmas,
-                    professores,
                     matriculas,
                     alunos,
                     presencas,
