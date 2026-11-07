@@ -50,6 +50,10 @@ public class DiarioRotina {
     @Column(name = "humor", nullable = false, length = 20)
     private Humor humor;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "higiene", nullable = false, length = 20)
+    private Higiene higiene;
+
     @Column(name = "observacao_professor", length = 1000)
     private String observacaoProfessor;
 

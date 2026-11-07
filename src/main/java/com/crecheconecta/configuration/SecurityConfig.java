@@ -33,7 +33,8 @@ public class SecurityConfig {
                                 "/api/alunos/*/inativar", "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar", "/api/turmas", "/api/turmas/*", "/api/turmas/*/inativar", "/api/turmas/*/matriculas",
                                 "/api/turmas/*/matriculas/*/encerrar", "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar", "/api/direcao/me/inativar", "/api/direcao/convites", "/api/cadastro/direcao/consultar-convite",
                                 "/api/cadastro/direcao/concluir", "/api/direcao/me", "/api/comunicados", "/api/comunicados/*", "/api/comunicados/*/inativar", "/api/turmas/*/chamadas/*/alunos/*",
-                                "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*", "/api/turmas/*/malas", "/api/turmas/*/malas/*", "/api/meus-filhos/*/mala/*/itens/*"))
+                                "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*", "/api/turmas/*/malas", "/api/turmas/*/malas/*", "/api/meus-filhos/*/mala/*/itens/*",
+                                "/api/turmas/*/diarios/*/alunos/*"))
 
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
@@ -79,6 +80,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/turmas/*/malas").hasRole("PROFESSOR")
                         .requestMatchers(HttpMethod.PUT, "/api/turmas/*/malas/*").hasRole("PROFESSOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/turmas/*/malas/*").hasRole("PROFESSOR")
+                        // Diário de rotina, lado do professor (a regra fina - turma, autor - fica no DiarioRotinaService).
+                        .requestMatchers(HttpMethod.GET, "/api/turmas/*/diarios/*").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/turmas/*/diarios/*/alunos/*").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/turmas/*/diarios/*/alunos/*").hasRole("PROFESSOR")
                         .requestMatchers(HttpMethod.GET, "/api/direcao", "/api/direcao/me").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.PUT, "/api/direcao/me").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.POST, "/api/direcao/convites", "/api/direcao/me/inativar").hasRole("DIRECAO")
