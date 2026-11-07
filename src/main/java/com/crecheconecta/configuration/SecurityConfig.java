@@ -33,7 +33,9 @@ public class SecurityConfig {
                                 "/api/alunos/*/inativar", "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar", "/api/turmas", "/api/turmas/*", "/api/turmas/*/inativar", "/api/turmas/*/matriculas",
                                 "/api/turmas/*/matriculas/*/encerrar", "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar", "/api/direcao/me/inativar", "/api/direcao/convites", "/api/cadastro/direcao/consultar-convite",
                                 "/api/cadastro/direcao/concluir", "/api/direcao/me", "/api/comunicados", "/api/comunicados/*", "/api/comunicados/*/inativar", "/api/turmas/*/chamadas/*/alunos/*",
-                                "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*", "/api/turmas/*/malas", "/api/turmas/*/malas/*", "/api/meus-filhos/*/mala/*/itens/*"))
+                                "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*", "/api/turmas/*/malas", "/api/turmas/*/malas/*", "/api/meus-filhos/*/mala/*/itens/*",
+                                "/api/solicitacoes-materiais", "/api/solicitacoes-materiais/*", "/api/solicitacoes-materiais/*/mensagens",
+                                "/api/solicitacoes-materiais/*/atender", "/api/solicitacoes-materiais/*/recusar", "/api/solicitacoes-materiais/*/cancelar"))
 
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
@@ -79,6 +81,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/turmas/*/malas").hasRole("PROFESSOR")
                         .requestMatchers(HttpMethod.PUT, "/api/turmas/*/malas/*").hasRole("PROFESSOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/turmas/*/malas/*").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.GET, "/api/solicitacoes-materiais", "/api/solicitacoes-materiais/*").hasAnyRole("DIRECAO", "PROFESSOR")
+                        .requestMatchers(HttpMethod.POST, "/api/solicitacoes-materiais").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/solicitacoes-materiais/*").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.POST, "/api/solicitacoes-materiais/*/mensagens").hasAnyRole("DIRECAO", "PROFESSOR")
+                        .requestMatchers(HttpMethod.POST, "/api/solicitacoes-materiais/*/atender", "/api/solicitacoes-materiais/*/recusar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/solicitacoes-materiais/*/cancelar").hasRole("PROFESSOR")
                         .requestMatchers(HttpMethod.GET, "/api/direcao", "/api/direcao/me").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.PUT, "/api/direcao/me").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.POST, "/api/direcao/convites", "/api/direcao/me/inativar").hasRole("DIRECAO")
