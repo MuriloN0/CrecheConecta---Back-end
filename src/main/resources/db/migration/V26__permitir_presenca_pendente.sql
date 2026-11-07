@@ -1,0 +1,2 @@
+ALTER TABLE presencas
+    ALTER COLUMN presente DROP NOT NULL;
