@@ -341,4 +341,20 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
         return resposta(HttpStatus.NOT_FOUND, "COMUNICADO_NAO_ENCONTRADO", exception.getMessage());
     }
+
+    @ExceptionHandler(MalaVirtualNaoEncontradaException.class)
+    public ResponseEntity<ProblemDetail> tratarMalaVirtualNaoEncontrada(MalaVirtualNaoEncontradaException exception) {
+
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(HttpStatus.NOT_FOUND, "MALA_VIRTUAL_NAO_ENCONTRADA", exception.getMessage());
+    }
+
+    @ExceptionHandler(ItemMalaNaoEncontradoException.class)
+    public ResponseEntity<ProblemDetail> tratarItemMalaNaoEncontrado(ItemMalaNaoEncontradoException exception) {
+
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(HttpStatus.NOT_FOUND, "ITEM_MALA_NAO_ENCONTRADO", exception.getMessage());
+    }
 }

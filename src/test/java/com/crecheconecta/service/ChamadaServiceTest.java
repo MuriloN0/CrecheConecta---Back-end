@@ -392,9 +392,8 @@ class ChamadaServiceTest {
 
     private ChamadaService criarService(Clock clock) {
         return new ChamadaService(
-                usuarios,
+                new VinculoProfessorService(usuarios, professores),
                 turmas,
-                professores,
                 matriculas,
                 alunos,
                 presencas,

@@ -11,4 +11,6 @@ public interface ItemMalaRepository extends JpaRepository<ItemMala, UUID> {
 
     // Itens de várias malas numa consulta só (evita 1 consulta por mala).
     List<ItemMala> findByMalaIdIn(Collection<UUID> malaIds);
+
+    List<ItemMala> findByMalaId(UUID malaId);
 }
