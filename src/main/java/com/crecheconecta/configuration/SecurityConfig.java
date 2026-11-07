@@ -33,7 +33,7 @@ public class SecurityConfig {
                                 "/api/alunos/*/inativar", "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar", "/api/turmas", "/api/turmas/*", "/api/turmas/*/inativar", "/api/turmas/*/matriculas",
                                 "/api/turmas/*/matriculas/*/encerrar", "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar", "/api/direcao/me/inativar", "/api/direcao/convites", "/api/cadastro/direcao/consultar-convite",
                                 "/api/cadastro/direcao/concluir", "/api/direcao/me", "/api/comunicados", "/api/comunicados/*", "/api/comunicados/*/inativar", "/api/turmas/*/chamadas/*/alunos/*",
-                                "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*"))
+                                "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*", "/api/turmas/*/malas", "/api/turmas/*/malas/*", "/api/meus-filhos/*/mala/*/itens/*"))
 
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
@@ -75,6 +75,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/comunicados/*").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.GET, "/api/turmas/*/chamadas/*").hasRole("PROFESSOR")
                         .requestMatchers(HttpMethod.PUT, "/api/turmas/*/chamadas/*/alunos/*").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.GET, "/api/turmas/*/malas", "/api/turmas/*/malas/*", "/api/turmas/*/malas/*/progresso").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.POST, "/api/turmas/*/malas").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/turmas/*/malas/*").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/turmas/*/malas/*").hasRole("PROFESSOR")
                         .requestMatchers(HttpMethod.GET, "/api/direcao", "/api/direcao/me").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.PUT, "/api/direcao/me").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.POST, "/api/direcao/convites", "/api/direcao/me/inativar").hasRole("DIRECAO")
@@ -106,8 +110,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/chamada").hasRole("RESPONSAVEL")
                         // Diário de rotina do filho: só leitura, só pais.
                         .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/diario").hasRole("RESPONSAVEL")
-                        // Mala virtual do filho: só leitura, só pais.
+                        // Mala virtual do filho: só pais.
                         .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/mala").hasRole("RESPONSAVEL")
+                        .requestMatchers(HttpMethod.PUT, "/api/meus-filhos/*/mala/*/itens/*").hasRole("RESPONSAVEL")
 
 
                         .requestMatchers("/api/atividades/**").authenticated()
