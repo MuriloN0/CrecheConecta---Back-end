@@ -1,17 +1,14 @@
-package com.crecheconecta.service.atividades;
+package com.crecheconecta.service;
 
 import com.crecheconecta.dto.AtualizarAtividadeRequestDTO;
 import com.crecheconecta.dto.NovaAtividadeRequestDTO;
 import com.crecheconecta.entity.AtividadeEntity;
+import com.crecheconecta.entity.Perfil;
 import com.crecheconecta.exception.AtividadeNaoEncontradaException;
 import com.crecheconecta.exception.RegraNegocioException;
 import com.crecheconecta.model.TipoAtividade;
 import com.crecheconecta.repository.AtividadeRepository;
-import com.crecheconecta.service.AtividadeAcessoService;
-import com.crecheconecta.service.AtividadeService;
-import com.crecheconecta.service.AtividadePrazoValidation;
-import com.crecheconecta.service.AtividadeTituloValidation;
-import com.crecheconecta.service.AuditoriaService;
+import com.crecheconecta.security.UsuarioAtual;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,12 +17,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import static org.mockito.Mockito.mock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,134 +36,133 @@ class AtividadeServiceTest {
     @Mock
     private AtividadeRepository atividadeRepository;
 
+    @Mock
+    private AtividadeAcessoService acesso;
+
+    @Mock
+    private AuditoriaService auditoria;
+
     private AtividadeService atividadeService;
+    private UsuarioAtual professor;
 
     @BeforeEach
     void setUp() {
+        professor = new UsuarioAtual(UUID.randomUUID(), Perfil.PROFESSOR);
+        when(acesso.usuarioAtual()).thenReturn(professor);
+
         atividadeService = new AtividadeService(
                 atividadeRepository,
                 new AtividadeTituloValidation(),
                 new AtividadePrazoValidation(),
-                mock(AtividadeAcessoService.class),
-                mock(AuditoriaService.class),
-                Clock.fixed(java.time.Instant.parse("2026-11-02T12:00:00Z"), ZoneOffset.UTC)
+                acesso,
+                auditoria,
+                Clock.fixed(Instant.parse("2026-11-02T12:00:00Z"), ZoneOffset.UTC)
         );
     }
 
     @Test
     void criaAtividadeDia() {
-        // Arrange
         UUID turmaId = UUID.randomUUID();
-        UUID professorId = UUID.randomUUID();
-        NovaAtividadeRequestDTO request = new NovaAtividadeRequestDTO(
-                professorId,
+        var request = new NovaAtividadeRequestDTO(
+                professor.id(),
                 TipoAtividade.DIA,
                 "  Pintura  ",
                 "Com tinta guache",
                 null
         );
-        when(atividadeRepository.save(any(AtividadeEntity.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Act
         UUID id = atividadeService.criar(turmaId, request);
 
-        // Assert
-        ArgumentCaptor<AtividadeEntity> captor = ArgumentCaptor.forClass(AtividadeEntity.class);
+        var captor = ArgumentCaptor.forClass(AtividadeEntity.class);
         verify(atividadeRepository).save(captor.capture());
+
         AtividadeEntity salva = captor.getValue();
         assertEquals(id, salva.getId());
         assertEquals(turmaId, salva.getTurmaId());
+        assertEquals(professor.id(), salva.getProfessorId());
         assertEquals("Pintura", salva.getTitulo());
         assertEquals(TipoAtividade.DIA, salva.getTipo());
     }
 
     @Test
     void casaSemPrazoNaoSalva() {
-        // Arrange
         UUID turmaId = UUID.randomUUID();
-        NovaAtividadeRequestDTO request = new NovaAtividadeRequestDTO(
-                UUID.randomUUID(),
+        var request = new NovaAtividadeRequestDTO(
+                professor.id(),
                 TipoAtividade.CASA,
                 "Lição de casa",
                 null,
                 null
         );
 
-        // Act
-        RegraNegocioException ex = assertThrows(
+        var erro = assertThrows(
                 RegraNegocioException.class,
                 () -> atividadeService.criar(turmaId, request)
         );
 
-        // Assert
         assertEquals(
                 "Prazo de conclusão é obrigatório para atividade de casa",
-                ex.getMessage()
+                erro.getMessage()
         );
-        verify(atividadeRepository, never()).save(any());
+        verify(atividadeRepository, never()).save(any(AtividadeEntity.class));
     }
 
     @Test
     void deletarInexistenteFalha() {
-        // Arrange
         UUID id = UUID.randomUUID();
-        when(atividadeRepository.existsById(id)).thenReturn(false);
+        when(atividadeRepository.findById(id)).thenReturn(Optional.empty());
 
-        // Act
-        AtividadeNaoEncontradaException ex = assertThrows(
+        var erro = assertThrows(
                 AtividadeNaoEncontradaException.class,
                 () -> atividadeService.deletar(id)
         );
 
-        // Assert
-        assertEquals("Atividade não encontrada.", ex.getMessage());
-        verify(atividadeRepository, never()).deleteById(id);
+        assertEquals("Atividade não encontrada.", erro.getMessage());
+        verify(atividadeRepository, never()).delete(any(AtividadeEntity.class));
     }
 
     @Test
     void listaPorTurmaETipo() {
-        // Arrange
         UUID turmaId = UUID.randomUUID();
-        when(atividadeRepository.findByTurmaIdAndTipo(turmaId, TipoAtividade.CASA))
-                .thenReturn(List.of());
+        var atividade = new AtividadeEntity();
+        atividade.setTurmaId(turmaId);
+        atividade.setTipo(TipoAtividade.CASA);
 
-        // Act
+        when(atividadeRepository.findByTurmaIdInAndTipoOrderByDataCriacaoDescIdAsc(
+                List.of(turmaId), TipoAtividade.CASA
+        )).thenReturn(List.of(atividade));
+
         List<AtividadeEntity> resultado =
                 atividadeService.listar(turmaId, TipoAtividade.CASA);
 
-        // Assert
-        assertEquals(0, resultado.size());
-        verify(atividadeRepository).findByTurmaIdAndTipo(turmaId, TipoAtividade.CASA);
+        assertEquals(List.of(atividade), resultado);
+        verify(acesso).validarTurma(turmaId, professor);
     }
 
     @Test
     void atualizaSoDescricao() {
-        // Arrange
         UUID id = UUID.randomUUID();
-        AtividadeEntity existente = new AtividadeEntity();
+        var existente = new AtividadeEntity();
         existente.setId(id);
         existente.setTurmaId(UUID.randomUUID());
-        existente.setProfessorId(UUID.randomUUID());
+        existente.setProfessorId(professor.id());
         existente.setTipo(TipoAtividade.DIA);
-        existente.setTitulo("Titulo original");
+        existente.setTitulo("Título original");
         existente.setDescricao("Antiga");
-        existente.setPrazoConclusao(null);
-        when(atividadeRepository.findById(id)).thenReturn(Optional.of(existente));
-        when(atividadeRepository.save(any(AtividadeEntity.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Act
+        when(atividadeRepository.findById(id)).thenReturn(Optional.of(existente));
+
         atividadeService.atualizar(
                 id,
-                new AtualizarAtividadeRequestDTO(null, null, "Nova descricao", null)
+                new AtualizarAtividadeRequestDTO(null, null, "Nova descrição", null)
         );
 
-        // Assert
-        ArgumentCaptor<AtividadeEntity> captor = ArgumentCaptor.forClass(AtividadeEntity.class);
+        var captor = ArgumentCaptor.forClass(AtividadeEntity.class);
         verify(atividadeRepository).save(captor.capture());
-        assertEquals("Nova descricao", captor.getValue().getDescricao());
-        assertEquals("Titulo original", captor.getValue().getTitulo());
-        assertEquals(TipoAtividade.DIA, captor.getValue().getTipo());
+
+        AtividadeEntity atualizada = captor.getValue();
+        assertEquals("Nova descrição", atualizada.getDescricao());
+        assertEquals("Título original", atualizada.getTitulo());
+        assertEquals(TipoAtividade.DIA, atualizada.getTipo());
     }
 }
