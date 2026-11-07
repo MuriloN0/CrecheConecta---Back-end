@@ -1,7 +1,6 @@
-package com.crecheconecta.service.atividades;
+package com.crecheconecta.service;
 
 import com.crecheconecta.exception.RegraNegocioException;
-import com.crecheconecta.service.AtividadeTituloValidation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

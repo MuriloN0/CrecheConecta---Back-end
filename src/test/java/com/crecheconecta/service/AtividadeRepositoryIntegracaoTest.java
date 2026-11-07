@@ -1,4 +1,4 @@
-package com.crecheconecta.service.atividades;
+package com.crecheconecta.service;
 
 import com.crecheconecta.entity.AtividadeEntity;
 import com.crecheconecta.model.TipoAtividade;
