@@ -151,6 +151,16 @@ public class AlunoService {
         return aluno;
     }
 
+    @Transactional(readOnly = true)
+    public Page<AlunoResponse> listarDisponiveis(int pagina, int tamanho, UsuarioAtual solicitante) {
+        validarDirecao(solicitante);
+        if (pagina < 0 || tamanho < 1 || tamanho > 100) {
+            throw new RegraNegocioException("Informe página a partir de zero e tamanho entre 1 e 100.");
+        }
+        return alunos.listarDisponiveis(PageRequest.of(pagina, tamanho, Sort.by("nome", "id")))
+                .map(AlunoResponse::de);
+    }
+
     private String validarDados(String nome, LocalDate dataNascimento) {
 
         if (nome == null || nome.isBlank()) {
