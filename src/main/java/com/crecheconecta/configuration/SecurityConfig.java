@@ -34,6 +34,8 @@ public class SecurityConfig {
                                 "/api/turmas/*/matriculas/*/encerrar", "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar", "/api/direcao/me/inativar", "/api/direcao/convites", "/api/cadastro/direcao/consultar-convite",
                                 "/api/cadastro/direcao/concluir", "/api/direcao/me", "/api/comunicados", "/api/comunicados/*", "/api/comunicados/*/inativar", "/api/turmas/*/chamadas/*/alunos/*",
                                 "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*", "/api/turmas/*/malas", "/api/turmas/*/malas/*", "/api/meus-filhos/*/mala/*/itens/*",
+                                "/api/turmas/*/diarios/*/alunos/*",
+                                "/api/termos", "/api/termos/*", "/api/termos/*/publicar",
                                 "/api/solicitacoes-materiais", "/api/solicitacoes-materiais/*", "/api/solicitacoes-materiais/*/mensagens",
                                 "/api/solicitacoes-materiais/*/atender", "/api/solicitacoes-materiais/*/recusar", "/api/solicitacoes-materiais/*/cancelar"))
 
@@ -81,6 +83,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/turmas/*/malas").hasRole("PROFESSOR")
                         .requestMatchers(HttpMethod.PUT, "/api/turmas/*/malas/*").hasRole("PROFESSOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/turmas/*/malas/*").hasRole("PROFESSOR")
+                        // Diário de rotina, lado do professor (a regra fina - turma, autor - fica no DiarioRotinaService).
+                        .requestMatchers(HttpMethod.GET, "/api/turmas/*/diarios/*").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/turmas/*/diarios/*/alunos/*").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/turmas/*/diarios/*/alunos/*").hasRole("PROFESSOR")
+                        // Versões dos termos de uso e da política de privacidade (CRUD pela direção).
+                        .requestMatchers(HttpMethod.GET, "/api/termos", "/api/termos/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/termos", "/api/termos/*/publicar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.PUT, "/api/termos/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.DELETE, "/api/termos/*").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.GET, "/api/solicitacoes-materiais", "/api/solicitacoes-materiais/*").hasAnyRole("DIRECAO", "PROFESSOR")
                         .requestMatchers(HttpMethod.POST, "/api/solicitacoes-materiais").hasRole("PROFESSOR")
                         .requestMatchers(HttpMethod.PUT, "/api/solicitacoes-materiais/*").hasRole("PROFESSOR")

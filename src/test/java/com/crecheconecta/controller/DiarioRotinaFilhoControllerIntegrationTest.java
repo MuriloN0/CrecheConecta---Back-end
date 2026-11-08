@@ -6,6 +6,7 @@ import com.crecheconecta.dto.VincularResponsavelRequest;
 import com.crecheconecta.entity.Alimentacao;
 import com.crecheconecta.entity.DiarioRotina;
 import com.crecheconecta.entity.Humor;
+import com.crecheconecta.entity.Higiene;
 import com.crecheconecta.entity.Perfil;
 import com.crecheconecta.entity.Sono;
 import com.crecheconecta.entity.Usuario;
@@ -166,6 +167,7 @@ class DiarioRotinaFilhoControllerIntegrationTest extends BaseControllerIntegrati
         diario.setSono(sono);
         diario.setEvacuacao(evacuacao);
         diario.setHumor(humor);
+        diario.setHigiene(Higiene.HIGIENIZADO);
         diario.setObservacaoProfessor(observacao);
         diario.setCriadoEm(Instant.now());
         diarios.saveAndFlush(diario);
