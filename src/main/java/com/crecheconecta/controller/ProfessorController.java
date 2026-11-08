@@ -16,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import com.crecheconecta.dto.AtualizarProfessorRequest;
 import com.crecheconecta.entity.SituacaoCadastro;
 import com.crecheconecta.service.ProfessorService;
 
@@ -85,13 +84,6 @@ public class ProfessorController {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
-    @PutMapping("/{professorId}")
-    public ResponseEntity<ProfessorResponse> atualizar(@PathVariable UUID professorId, @Valid @RequestBody AtualizarProfessorRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
-
-        var resposta = professores.atualizar(professorId, request, UsuarioAtual.de(autenticado));
-
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
-    }
 
     @PostMapping("/{professorId}/inativar")
     public ResponseEntity<ProfessorResponse> inativar(@PathVariable UUID professorId, @Valid @RequestBody DecidirCadastroProfessorRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {

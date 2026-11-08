@@ -32,6 +32,9 @@ public class ConviteProfessorService {
     private final TransactionTemplate transacao;
     private final String urlCadastro;
 
+    @Value("${app.cadastro.responsavel.url:http://localhost:4200/cadastro/responsavel}")
+    private String urlCadastroResponsavel;
+
     public ConviteProfessorService(ConviteCadastroRepository convites, UsuarioRepository usuarios, TokenConviteService tokens, EmailService emails, AuditoriaService auditoria, PlatformTransactionManager transactionManager, @Value("${app.cadastro.url}") String urlCadastro) {
         this.convites = convites;
         this.usuarios = usuarios;
@@ -43,14 +46,28 @@ public class ConviteProfessorService {
     }
 
     public ConviteCadastroResponse convidar(ConvidarProfessorRequest request, UsuarioAtual solicitante) {
+        return convidar(request, solicitante, Perfil.PROFESSOR, urlCadastro);
+    }
+
+    public ConviteCadastroResponse convidarResponsavel(
+            ConvidarProfessorRequest request, UsuarioAtual solicitante) {
+        return convidar(request, solicitante, Perfil.RESPONSAVEL, validarUrlCadastro(urlCadastroResponsavel));
+    }
+
+    private ConviteCadastroResponse convidar(
+            ConvidarProfessorRequest request, UsuarioAtual solicitante, Perfil perfil, String url) {
         if (solicitante == null || solicitante.perfil() != Perfil.DIRECAO) {
             throw new AcessoNegadoException( "Você não possui permissão para esta operação.");
         }
 
-        var envio = Objects.requireNonNull(transacao.execute(status -> prepararConvite(request, solicitante)));
+        var envio = Objects.requireNonNull(transacao.execute(status -> prepararConvite(request, solicitante, perfil, url)));
 
         try {
-            emails.enviarConviteProfessor(envio.conviteId(), envio.email(), envio.link());
+            if (perfil == Perfil.RESPONSAVEL) {
+                emails.enviarConviteResponsavel(envio.conviteId(), envio.email(), envio.link());
+            } else {
+                emails.enviarConviteProfessor(envio.conviteId(), envio.email(), envio.link());
+            }
         } catch (RuntimeException exception) {
             try {
                 cancelarAposFalha(envio.conviteId());
@@ -61,10 +78,13 @@ public class ConviteProfessorService {
             throw exception;
         }
 
-        return new ConviteCadastroResponse(envio.conviteId(), envio.email(), envio.expiraEm(), "Convite enviado. O professor deve concluir o cadastro pelo e-mail.");
+        String mensagem = perfil == Perfil.RESPONSAVEL
+                ? "Convite enviado. O responsável deve concluir o cadastro pelo e-mail."
+                : "Convite enviado. O professor deve concluir o cadastro pelo e-mail.";
+        return new ConviteCadastroResponse(envio.conviteId(), envio.email(), envio.expiraEm(), mensagem);
     }
 
-    private EnvioConvite prepararConvite(ConvidarProfessorRequest request, UsuarioAtual solicitante) {
+    private EnvioConvite prepararConvite(ConvidarProfessorRequest request, UsuarioAtual solicitante, Perfil perfil, String url) {
         var diretor = usuarios.buscarPorIdComBloqueio(solicitante.id())
                 .orElseThrow(() -> new AcessoNegadoException("Você não possui permissão para esta operação."));
 
@@ -78,7 +98,8 @@ public class ConviteProfessorService {
 
         String nome = request.nome().strip();
 
-        if (nome.isBlank()) {throw new RegraNegocioException("Informe o nome do professor.");
+        if (nome.isBlank()) {
+            throw new RegraNegocioException("Informe o nome do convidado.");
         }
 
         if (usuarios.existsByEmail(email)) {
@@ -91,6 +112,9 @@ public class ConviteProfessorService {
                 .orElse(null);
 
         if (anterior != null) {
+            if (anterior.getPerfil() != perfil) {
+                throw new RegraNegocioException("Já existe um convite pendente para outro perfil neste e-mail.");
+            }
             if (anterior.getCriadoEm()
                     .plusSeconds(60)
                     .isAfter(agora)) {
@@ -108,7 +132,7 @@ public class ConviteProfessorService {
         var convite = new ConviteCadastro();
         convite.setNome(nome);
         convite.setEmail(email);
-        convite.setPerfil(Perfil.PROFESSOR);
+        convite.setPerfil(perfil);
         convite.setTokenHash(tokens.calcularHash(token));
         convite.setCriadoPor(diretor);
         convite.setCriadoEm(agora);
@@ -118,9 +142,9 @@ public class ConviteProfessorService {
 
         convites.saveAndFlush(convite);
 
-        auditoria.aposCommit("CONVITE_PROFESSOR_CRIADO", diretor.getId(), convite.getId());
+        auditoria.aposCommit("CONVITE_" + perfil.name() + "_CRIADO", diretor.getId(), convite.getId());
 
-        String link = urlCadastro + "#token=" + token;
+        String link = url + "#token=" + token;
 
         return new EnvioConvite(convite.getId(), email, convite.getExpiraEm(), link);
     }

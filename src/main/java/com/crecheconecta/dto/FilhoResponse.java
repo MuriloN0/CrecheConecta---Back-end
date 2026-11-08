@@ -6,11 +6,7 @@ import com.crecheconecta.entity.Turma;
 import java.time.LocalDate;
 import java.util.UUID;
 
-/**
- * Dados do filho que o RESPONSAVEL vê no portal (Perfil da Criança).
- * turma vem null quando o aluno ainda não está matriculado.
- */
-public record FilhoResponse(UUID id, String nome, LocalDate dataNascimento, TurmaResumo turma) {
+public record FilhoResponse(UUID id, String nome, LocalDate dataNascimento, TurmaResumo turma, Integer anoNascimento) {
 
     public record TurmaResumo(UUID id, String nome, String numeroSala) {
 
@@ -20,6 +16,6 @@ public record FilhoResponse(UUID id, String nome, LocalDate dataNascimento, Turm
     }
 
     public static FilhoResponse de(Aluno aluno, Turma turma) {
-        return new FilhoResponse(aluno.getId(), aluno.getNome(), aluno.getDataNascimento(), turma == null ? null : TurmaResumo.de(turma));
+        return new FilhoResponse(aluno.getId(), aluno.getNome(), aluno.getDataNascimento(), turma == null ? null : TurmaResumo.de(turma), aluno.getAnoNascimento());
     }
 }

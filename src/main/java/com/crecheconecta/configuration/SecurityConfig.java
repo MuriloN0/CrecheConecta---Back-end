@@ -29,7 +29,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/api/auth/login", "/api/auth/confirmar-login", "/api/auth/logout", "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha",
                                 "/api/termo/aceite", "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*", "/api/atividades", "/api/atividades/**", "/api/professores/convites", "/api/cadastro/professores/consultar-convite",
-                                "/api/cadastro/professores/concluir", "/api/professores/*/aprovar", "/api/professores/*/rejeitar", "/api/professores/*", "/api/professores/*/inativar", "/api/alunos", "/api/alunos/*",
+                                "/api/cadastro/professores/concluir", "/api/cadastro/responsavel/**", "/api/alunos/convites", "/api/professores/*/aprovar", "/api/professores/*/rejeitar", "/api/professores/*", "/api/professores/*/inativar", "/api/alunos", "/api/alunos/*",
                                 "/api/alunos/*/inativar", "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar", "/api/turmas", "/api/turmas/*", "/api/turmas/*/inativar", "/api/turmas/*/matriculas",
                                 "/api/turmas/*/matriculas/*/encerrar", "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar", "/api/direcao/me/inativar", "/api/direcao/convites", "/api/cadastro/direcao/consultar-convite",
                                 "/api/cadastro/direcao/concluir", "/api/direcao/me", "/api/comunicados", "/api/comunicados/*", "/api/comunicados/*/inativar", "/api/turmas/*/chamadas/*/alunos/*",
@@ -60,11 +60,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/professores/pendentes").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.POST, "/api/professores/*/aprovar", "/api/professores/*/rejeitar").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.GET, "/api/professores", "/api/professores/*").hasRole("DIRECAO")
-                        .requestMatchers(HttpMethod.PUT, "/api/professores/*").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.POST, "/api/professores/*/inativar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/cadastro/responsavel/consultar-convite", "/api/cadastro/responsavel/concluir").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/alunos", "/api/alunos/*").hasRole("DIRECAO")
-                        .requestMatchers(HttpMethod.POST, "/api/alunos", "/api/alunos/*/inativar").hasRole("DIRECAO")
-                        .requestMatchers(HttpMethod.PUT, "/api/alunos/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos/convites", "/api/alunos/*/inativar").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.GET, "/api/alunos/*/responsaveis").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.POST, "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.GET, "/api/turmas", "/api/turmas/*").hasRole("DIRECAO")
@@ -134,10 +133,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/meus-filhos/*/mala/*/itens/*").hasRole("RESPONSAVEL")
 
 
-                        .requestMatchers(HttpMethod.GET, "/api/atividades", "/api/atividades/*", "/api/atividades/turmas").hasAnyRole("DIRECAO", "PROFESSOR", "RESPONSAVEL")
-                        .requestMatchers(HttpMethod.POST, "/api/atividades").hasRole("PROFESSOR")
-                        .requestMatchers(HttpMethod.PATCH, "/api/atividades/*").hasRole("PROFESSOR")
-                        .requestMatchers(HttpMethod.DELETE, "/api/atividades/*").hasRole("PROFESSOR")
+                        .requestMatchers("/api/atividades/**").authenticated()
                         .anyRequest()
                         .denyAll()
                 )

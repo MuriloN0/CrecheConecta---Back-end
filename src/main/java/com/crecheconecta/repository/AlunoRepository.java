@@ -16,6 +16,15 @@ public interface AlunoRepository extends JpaRepository<Aluno, UUID> {
 
     Page<Aluno> findByAtivo(boolean ativo, Pageable pageable);
 
+    @Query("""
+            SELECT a FROM Aluno a
+            WHERE a.ativo = true AND NOT EXISTS (
+                SELECT m.id FROM MatriculaTurma m
+                WHERE m.alunoId = a.id AND m.encerradoEm IS NULL
+            )
+            """)
+    Page<Aluno> listarDisponiveis(Pageable pageable);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             SELECT a
