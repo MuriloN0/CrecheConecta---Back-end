@@ -35,7 +35,9 @@ public class SecurityConfig {
                                 "/api/cadastro/direcao/concluir", "/api/direcao/me", "/api/comunicados", "/api/comunicados/*", "/api/comunicados/*/inativar", "/api/turmas/*/chamadas/*/alunos/*",
                                 "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*", "/api/turmas/*/malas", "/api/turmas/*/malas/*", "/api/meus-filhos/*/mala/*/itens/*",
                                 "/api/turmas/*/diarios/*/alunos/*",
-                                "/api/termos", "/api/termos/*", "/api/termos/*/publicar"))
+                                "/api/termos", "/api/termos/*", "/api/termos/*/publicar",
+                                "/api/solicitacoes-materiais", "/api/solicitacoes-materiais/*", "/api/solicitacoes-materiais/*/mensagens",
+                                "/api/solicitacoes-materiais/*/atender", "/api/solicitacoes-materiais/*/recusar", "/api/solicitacoes-materiais/*/cancelar"))
 
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
@@ -90,6 +92,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/termos", "/api/termos/*/publicar").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.PUT, "/api/termos/*").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.DELETE, "/api/termos/*").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.GET, "/api/solicitacoes-materiais", "/api/solicitacoes-materiais/*").hasAnyRole("DIRECAO", "PROFESSOR")
+                        .requestMatchers(HttpMethod.POST, "/api/solicitacoes-materiais").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/solicitacoes-materiais/*").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.POST, "/api/solicitacoes-materiais/*/mensagens").hasAnyRole("DIRECAO", "PROFESSOR")
+                        .requestMatchers(HttpMethod.POST, "/api/solicitacoes-materiais/*/atender", "/api/solicitacoes-materiais/*/recusar").hasRole("DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/solicitacoes-materiais/*/cancelar").hasRole("PROFESSOR")
                         .requestMatchers(HttpMethod.GET, "/api/direcao", "/api/direcao/me").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.PUT, "/api/direcao/me").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.POST, "/api/direcao/convites", "/api/direcao/me/inativar").hasRole("DIRECAO")
@@ -126,7 +134,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/meus-filhos/*/mala/*/itens/*").hasRole("RESPONSAVEL")
 
 
-                        .requestMatchers("/api/atividades/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/atividades", "/api/atividades/*", "/api/atividades/turmas").hasAnyRole("DIRECAO", "PROFESSOR", "RESPONSAVEL")
+                        .requestMatchers(HttpMethod.POST, "/api/atividades").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/atividades/*").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/atividades/*").hasRole("PROFESSOR")
                         .anyRequest()
                         .denyAll()
                 )

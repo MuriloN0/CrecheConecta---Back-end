@@ -29,8 +29,7 @@ public class Presenca {
     @Column(nullable = false, updatable = false)
     private LocalDate data;
 
-    @Column(nullable = false)
-    private boolean presente;
+    private Boolean presente;
 
     @Column(name = "registrado_por", nullable = false)
     private UUID registradoPor;
@@ -41,4 +40,8 @@ public class Presenca {
     @Version
     @Column(nullable = false)
     private Long versao;
+
+    public Boolean isPresente() {
+        return presente;
+    }
 }

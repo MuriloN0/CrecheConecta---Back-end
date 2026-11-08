@@ -111,22 +111,26 @@ public class ChamadaService {
         }
 
         if (!matriculas.existsByTurmaIdAndAlunoIdAndEncerradoEmIsNull(turmaId, alunoId)) {
-
             throw new RegraNegocioException("O aluno não possui matrícula atual nesta turma.");
         }
 
-        if (request.presente() == null) {
+        boolean limpar = Boolean.TRUE.equals(request.limpar());
 
+        if (limpar && request.presente() != null) {
+            throw new RegraNegocioException("Escolha entre marcar a presença ou limpar a marcação.");
+        }
+
+        if (!limpar && request.presente() == null) {
             throw new RegraNegocioException("Informe se o aluno está presente.");
         }
 
-        var registro = presencas.findByTurmaIdAndAlunoIdAndData(turmaId, alunoId, data).orElse(null);
+        var registro = presencas.findByTurmaIdAndAlunoIdAndData(turmaId, alunoId, data)
+                .orElse(null);
 
         boolean novo = registro == null;
 
         if (novo) {
-            if (request.versao() != null) {
-
+            if (limpar || request.versao() != null) {
                 throw new ConflitoVersaoException();
             }
 
@@ -134,10 +138,13 @@ public class ChamadaService {
             registro.setTurmaId(turmaId);
             registro.setAlunoId(alunoId);
             registro.setData(data);
-
-        } else if (request.versao() == null || !Objects.equals(registro.getVersao(), request.versao())) {
-
+        } else if (request.versao() == null
+                || !Objects.equals(registro.getVersao(), request.versao())) {
             throw new ConflitoVersaoException();
+        }
+
+        if (limpar && registro.isPresente() == null) {
+            return PresencaResponse.de(registro);
         }
 
         registro.setPresente(request.presente());
@@ -145,10 +152,14 @@ public class ChamadaService {
         registro.setAtualizadoEm(clock.instant());
 
         presencas.saveAndFlush(registro);
-
         validarData(data);
 
-        auditoria.aposCommit(novo ? "PRESENCA_REGISTRADA" : "PRESENCA_ATUALIZADA", solicitante.id(), registro.getId());
+        String evento = novo ? "PRESENCA_REGISTRADA" : "PRESENCA_ATUALIZADA";
+        if (limpar) {
+            evento = "PRESENCA_LIMPA";
+        }
+
+        auditoria.aposCommit(evento, solicitante.id(), registro.getId());
 
         return PresencaResponse.de(registro);
     }
