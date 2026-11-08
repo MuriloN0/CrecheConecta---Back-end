@@ -62,7 +62,7 @@ public class TermoService {
                 .orElse(true);
     }
 
-    // A migration V27 cria a versão inicial e o banco impede apagar a vigente, então sempre existe uma.
+    // A migration V29 cria a versão inicial e o banco impede apagar a vigente, então sempre existe uma.
     private TermoVersao vigente() {
         return termos.findByStatus(StatusTermo.VIGENTE)
                 .orElseThrow(() -> new IllegalStateException("Não há versão vigente dos termos."));
