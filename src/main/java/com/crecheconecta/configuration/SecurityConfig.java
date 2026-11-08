@@ -123,7 +123,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/meus-filhos/*/mala/*/itens/*").hasRole("RESPONSAVEL")
 
 
-                        .requestMatchers("/api/atividades/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/atividades", "/api/atividades/*", "/api/atividades/turmas").hasAnyRole("DIRECAO", "PROFESSOR", "RESPONSAVEL")
+                        .requestMatchers(HttpMethod.POST, "/api/atividades").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/atividades/*").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/atividades/*").hasRole("PROFESSOR")
                         .anyRequest()
                         .denyAll()
                 )
