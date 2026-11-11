@@ -2,9 +2,7 @@ package com.crecheconecta.controller.fichasaude;
 
 import com.crecheconecta.controller.base.IntegracaoTestBase;
 import com.crecheconecta.dto.AlunoResponsavelResponse;
-import com.crecheconecta.dto.AlunoResponse;
 import com.crecheconecta.dto.AtualizarFichaSaudeRequest;
-import com.crecheconecta.dto.CadastrarAlunoRequest;
 import com.crecheconecta.dto.CadastrarTurmaRequest;
 import com.crecheconecta.dto.FichaSaudeRequest;
 import com.crecheconecta.dto.FichaSaudeResponse;
@@ -15,9 +13,11 @@ import com.crecheconecta.dto.TurmaProfessorResponse;
 import com.crecheconecta.dto.TurmaResponse;
 import com.crecheconecta.dto.VincularProfessorTurmaRequest;
 import com.crecheconecta.dto.VincularResponsavelRequest;
+import com.crecheconecta.entity.Aluno;
 import com.crecheconecta.entity.FichaSaude;
 import com.crecheconecta.entity.Perfil;
 import com.crecheconecta.entity.Usuario;
+import com.crecheconecta.repository.AlunoRepository;
 import com.crecheconecta.repository.FichaSaudeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * RestClient -> HTTP real -> AutenticacaoTokenFilter/SecurityFilterChain -> FichaSaudeController
  * -> FichaSaudeService (+ VinculoResponsavelService, CriptografiaService) -> FichaSaudeRepository -> H2 em memoria
  *
- * O cenario (aluno, vinculo, turma, matricula, professor) e montado pelos endpoints reais da direcao.
+ * O aluno e gravado direto no banco; vinculo, turma, matricula e professor sao montados pelos endpoints reais da direcao.
  * Unico mock: EmailService (API Resend).
  */
 class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
@@ -56,6 +56,9 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
 
     @Autowired
     private FichaSaudeRepository fichaSaudeRepository; // usado so para conferir persistencia
+
+    @Autowired
+    private AlunoRepository alunoRepository; // aluno é só cenário: o POST /api/alunos saiu da API
 
     private String tokenDirecao;
 
@@ -576,16 +579,13 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         return "/api/alunos/" + alunoId + "/fichas-saude";
     }
 
-    /** Cadastra um aluno pelo endpoint real /api/alunos (como DIRECAO) e devolve o id gerado. */
+    /** Grava o aluno direto no banco: o cadastro direto saiu da API (o aluno nasce no convite do responsável). */
     private UUID criarAluno(String nome) {
-        ResponseEntity<AlunoResponse> response = client.post().uri("/api/alunos")
-                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new CadastrarAlunoRequest(nome, LocalDate.of(2022, 3, 15)))
-                .retrieve()
-                .toEntity(AlunoResponse.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        return response.getBody().id();
+        var aluno = new Aluno();
+        aluno.setNome(nome);
+        aluno.setDataNascimento(LocalDate.of(2022, 3, 15));
+        aluno.setAtivo(true);
+        return alunoRepository.saveAndFlush(aluno).getId();
     }
 
     /** Cria uma ficha pelo endpoint real (como o RESPONSAVEL do aluno) e devolve o id do header Location. */
