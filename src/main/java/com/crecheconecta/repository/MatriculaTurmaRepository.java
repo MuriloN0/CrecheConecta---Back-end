@@ -10,12 +10,17 @@ import org.springframework.data.repository.query.Param;
 import com.crecheconecta.entity.Aluno;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface MatriculaTurmaRepository extends JpaRepository<MatriculaTurma, UUID> {
 
     boolean existsByAlunoIdAndEncerradoEmIsNull(UUID alunoId);
+
+    // Features dos pais: matrícula ATUAL do aluno (no máximo 1, garantido por uk_matricula_atual_aluno).
+    Optional<MatriculaTurma> findByAlunoIdAndEncerradoEmIsNull(UUID alunoId);
+
 
     Optional<MatriculaTurma> findByIdAndTurmaId(UUID id, UUID turmaI);
 
@@ -80,4 +85,15 @@ public interface MatriculaTurmaRepository extends JpaRepository<MatriculaTurma, 
     )
 
     Page<Aluno> buscarAlunosAtuaisDaChamada(@Param("turmaId") UUID turmaId, Pageable pageable);
+
+    @Query("""
+            SELECT a
+            FROM Aluno a, MatriculaTurma m
+            WHERE m.alunoId = a.id
+              AND m.turmaId = :turmaId
+              AND m.encerradoEm IS NULL
+              AND a.ativo = TRUE
+            ORDER BY a.nome, a.id
+            """)
+    List<Aluno> buscarAlunosAtuaisDaTurma(@Param("turmaId") UUID turmaId);
 }

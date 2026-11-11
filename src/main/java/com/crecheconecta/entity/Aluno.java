@@ -22,8 +22,16 @@ public class Aluno {
     @Column(nullable = false, length = 150)
     private String nome;
 
-    @Column(name = "data_nascimento", nullable = false)
+    @Column(name = "data_nascimento")
     private LocalDate dataNascimento;
+
+    @Column(name = "ano_nascimento")
+    private Integer anoNascimento;
+
+    public Integer getAnoNascimento() {
+
+        return anoNascimento != null ? anoNascimento : dataNascimento != null ? dataNascimento.getYear() : null;
+    }
 
     @Column(nullable = false)
     private boolean ativo = true;

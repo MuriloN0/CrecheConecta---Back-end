@@ -1,0 +1,21 @@
+package com.crecheconecta.dto;
+
+import com.crecheconecta.entity.Aluno;
+import com.crecheconecta.entity.Turma;
+
+import java.time.LocalDate;
+import java.util.UUID;
+
+public record FilhoResponse(UUID id, String nome, LocalDate dataNascimento, TurmaResumo turma, Integer anoNascimento) {
+
+    public record TurmaResumo(UUID id, String nome, String numeroSala) {
+
+        public static TurmaResumo de(Turma turma) {
+            return new TurmaResumo(turma.getId(), turma.getNome(), turma.getNumeroSala());
+        }
+    }
+
+    public static FilhoResponse de(Aluno aluno, Turma turma) {
+        return new FilhoResponse(aluno.getId(), aluno.getNome(), aluno.getDataNascimento(), turma == null ? null : TurmaResumo.de(turma), aluno.getAnoNascimento());
+    }
+}

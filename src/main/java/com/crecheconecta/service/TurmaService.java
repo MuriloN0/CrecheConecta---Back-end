@@ -103,6 +103,9 @@ public class TurmaService {
         validarDirecao(solicitante);
 
         var turma = buscarComBloqueio(turmaId, request.versao());
+        if (!turma.isAtivo()) {
+            throw new RegraNegocioException("Não é possível editar uma turma inativa.");
+        }
 
         turma.setNome(normalizarTexto(request.nome(), "nome", 150));
         turma.setNumeroSala(normalizarTexto(request.numeroSala(), "número da sala", 20));

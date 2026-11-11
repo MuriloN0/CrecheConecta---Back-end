@@ -11,6 +11,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Lado do usuário: lê a versão vigente dos termos e registra o aceite.
+ * A gestão das versões (rascunho, publicar) está em TermoVersaoController.
+ */
 @RestController
 @RequestMapping("/api/termo")
 public class TermoController {
@@ -26,13 +30,7 @@ public class TermoController {
             @AuthenticationPrincipal UsuarioAutenticado autenticado
     ) {
         var usuario = UsuarioAtual.de(autenticado);
-
-        return new TermoStatusResponse(
-                service.precisaAceitar(usuario.id()),
-                service.versaoAtual(),
-                service.termoUso(),
-                service.politicaPrivacidade()
-        );
+        return service.status(usuario.id());
     }
 
     @PostMapping("/aceite")
@@ -40,9 +38,7 @@ public class TermoController {
             @AuthenticationPrincipal UsuarioAutenticado autenticado
     ) {
         var usuario = UsuarioAtual.de(autenticado);
-
         service.registrarAceite(usuario.id());
-
         return ResponseEntity.noContent().build();
     }
 }

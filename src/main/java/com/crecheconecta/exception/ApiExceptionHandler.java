@@ -99,6 +99,32 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    @ExceptionHandler(ObservacaoNaoEncontradaException.class)
+    public ResponseEntity<ProblemDetail> tratarObservacaoNaoEncontrada(
+            ObservacaoNaoEncontradaException exception
+    ) {
+        registrarAuditoria("ERRO_NAO_ENCONTRADA");
+
+        return resposta(
+                HttpStatus.NOT_FOUND,
+                "OBSERVACAO_NAO_ENCONTRADA",
+                "Observação não encontrada."
+        );
+    }
+
+    @ExceptionHandler(DiarioRotinaNaoEncontradoException.class)
+    public ResponseEntity<ProblemDetail> tratarDiarioRotinaNaoEncontrado(
+            DiarioRotinaNaoEncontradoException exception
+    ) {
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(
+                HttpStatus.NOT_FOUND,
+                "DIARIO_ROTINA_NAO_ENCONTRADO",
+                "Diário de rotina não encontrado."
+        );
+    }
+
     @ExceptionHandler(AtividadeNaoEncontradaException.class)
     public ResponseEntity<ProblemDetail> tratarAtividadeNaoEncontrada(
             AtividadeNaoEncontradaException exception
@@ -276,6 +302,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return resposta(HttpStatus.NOT_FOUND, "PROFESSOR_NAO_ENCONTRADO", exception.getMessage());
     }
 
+    @ExceptionHandler(TermoNaoEncontradoException.class)
+    public ResponseEntity<ProblemDetail> tratarTermoNaoEncontrado(TermoNaoEncontradoException exception) {
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+        return resposta(HttpStatus.NOT_FOUND, "TERMO_NAO_ENCONTRADO", exception.getMessage());
+    }
     @ExceptionHandler(AlunoNaoEncontradoException.class)
     public ResponseEntity<ProblemDetail> tratarAlunoNaoEncontrado(AlunoNaoEncontradoException exception) {
 
@@ -314,5 +345,29 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         registrarAuditoria("ERRO_NAO_ENCONTRADO");
 
         return resposta(HttpStatus.NOT_FOUND, "COMUNICADO_NAO_ENCONTRADO", exception.getMessage());
+    }
+
+    @ExceptionHandler(MalaVirtualNaoEncontradaException.class)
+    public ResponseEntity<ProblemDetail> tratarMalaVirtualNaoEncontrada(MalaVirtualNaoEncontradaException exception) {
+
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(HttpStatus.NOT_FOUND, "MALA_VIRTUAL_NAO_ENCONTRADA", exception.getMessage());
+    }
+
+    @ExceptionHandler(ItemMalaNaoEncontradoException.class)
+    public ResponseEntity<ProblemDetail> tratarItemMalaNaoEncontrado(ItemMalaNaoEncontradoException exception) {
+
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(HttpStatus.NOT_FOUND, "ITEM_MALA_NAO_ENCONTRADO", exception.getMessage());
+    }
+
+    @ExceptionHandler(SolicitacaoMaterialNaoEncontradaException.class)
+    public ResponseEntity<ProblemDetail> tratarSolicitacaoMaterialNaoEncontrada(SolicitacaoMaterialNaoEncontradaException exception) {
+
+        registrarAuditoria("ERRO_NAO_ENCONTRADO");
+
+        return resposta(HttpStatus.NOT_FOUND, "SOLICITACAO_MATERIAL_NAO_ENCONTRADA", exception.getMessage());
     }
 }

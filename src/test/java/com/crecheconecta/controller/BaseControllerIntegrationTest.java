@@ -1,8 +1,10 @@
 package com.crecheconecta.controller;
 
 import com.crecheconecta.dto.*;
+import com.crecheconecta.entity.Aluno;
 import com.crecheconecta.entity.Perfil;
 import com.crecheconecta.entity.Usuario;
+import com.crecheconecta.repository.AlunoRepository;
 import com.crecheconecta.repository.UsuarioRepository;
 import com.crecheconecta.service.EmailService;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -45,6 +47,9 @@ abstract class BaseControllerIntegrationTest {
 
     @Autowired
     private UsuarioRepository usuarios;
+
+    @Autowired
+    private AlunoRepository alunos;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -125,19 +130,17 @@ abstract class BaseControllerIntegrationTest {
         return confirmacao.getBody().accessToken();
     }
 
+    /**
+     * O cadastro direto de aluno saiu da API no PR #41: agora o aluno nasce no convite do responsável.
+     * Aqui o aluno é só preparação do cenário, então é gravado direto no banco.
+     */
     protected AlunoResponse criarAluno() {
+        var aluno = new Aluno();
+        aluno.setNome("Aluno " + UUID.randomUUID());
+        aluno.setDataNascimento(NASCIMENTO);
+        aluno.setAtivo(true);
 
-        var request = new CadastrarAlunoRequest("Aluno " + UUID.randomUUID(), NASCIMENTO);
-
-        var resposta = chamar(HttpMethod.POST, ALUNOS, tokenDirecao, request, AlunoResponse.class);
-
-        assertThat(resposta.getStatusCode())
-                .isEqualTo(HttpStatus.CREATED);
-
-        assertThat(resposta.getBody()).isNotNull();
-        assertThat(resposta.getBody().id()).isNotNull();
-
-        return resposta.getBody();
+        return AlunoResponse.de(alunos.saveAndFlush(aluno));
     }
 
     protected <T> ResponseEntity<T> chamar(HttpMethod metodo, String rota, String token, Object corpo, Class<T> tipoResposta) {
