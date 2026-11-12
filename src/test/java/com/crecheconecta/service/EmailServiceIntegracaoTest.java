@@ -3,6 +3,7 @@ package com.crecheconecta.service;
 
 import com.crecheconecta.entity.FinalidadeAcao;
 import com.crecheconecta.security.SegredoVerificacaoService;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @SpringBootTest
+@Tag("integration")
 @EnabledIfEnvironmentVariable(
         named = "EXECUTAR_TESTE_RESEND",
         matches = "true"

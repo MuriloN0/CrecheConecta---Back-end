@@ -10,6 +10,7 @@ import com.crecheconecta.entity.Usuario;
 import com.crecheconecta.repository.UsuarioRepository;
 import com.crecheconecta.service.EmailService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,6 +27,7 @@ import static org.mockito.Mockito.verify;
 // Classe base com a preparação comum dos testes de integração (subir a aplicação e fazer login)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@Tag("integration")
 public abstract class IntegracaoTestBase {
 
     protected static final String SENHA_PADRAO = "SenhaDeTeste@2026";

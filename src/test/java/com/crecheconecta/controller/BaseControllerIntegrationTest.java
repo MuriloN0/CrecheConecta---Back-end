@@ -9,6 +9,7 @@ import com.crecheconecta.repository.UsuarioRepository;
 import com.crecheconecta.service.EmailService;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -34,6 +35,7 @@ import static org.mockito.Mockito.doAnswer;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@Tag("integration")
 abstract class BaseControllerIntegrationTest {
 
     protected static final String ALUNOS = "/api/alunos";

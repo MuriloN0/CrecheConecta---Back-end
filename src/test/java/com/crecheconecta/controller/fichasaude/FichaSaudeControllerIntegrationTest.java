@@ -1,14 +1,17 @@
 package com.crecheconecta.controller.fichasaude;
 
 import com.crecheconecta.controller.base.IntegracaoTestBase;
-import com.crecheconecta.dto.AlunoResponse;
 import com.crecheconecta.dto.AtualizarFichaSaudeRequest;
-import com.crecheconecta.dto.CadastrarAlunoRequest;
 import com.crecheconecta.dto.FichaSaudeRequest;
 import com.crecheconecta.dto.FichaSaudeResponse;
 import com.crecheconecta.dto.FichaSaudeResumoResponse;
+import com.crecheconecta.entity.Aluno;
+import com.crecheconecta.entity.AlunoResponsavel;
 import com.crecheconecta.entity.FichaSaude;
 import com.crecheconecta.entity.Perfil;
+import com.crecheconecta.entity.Usuario;
+import com.crecheconecta.repository.AlunoRepository;
+import com.crecheconecta.repository.AlunoResponsavelRepository;
 import com.crecheconecta.repository.FichaSaudeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -27,37 +31,53 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Testes de integracao do FichaSaudeController (rotas restritas ao perfil DIRECAO).
+ * Testes de integracao do FichaSaudeController.
+ *
+ * Regra atual: so o RESPONSAVEL vinculado ao aluno cadastra, atualiza e exclui fichas;
+ * a DIRECAO apenas consulta (listar/visualizar).
  *
  * Fluxo real exercitado em cada teste:
  * RestClient -> HTTP real -> AutenticacaoTokenFilter/SecurityFilterChain -> FichaSaudeController
- * -> FichaSaudeService (+ CriptografiaService, AlunoRepository) -> FichaSaudeRepository -> H2 em memoria
+ * -> FichaSaudeService (+ VinculoResponsavelService, CriptografiaService) -> FichaSaudeRepository -> H2 em memoria
  *
  * Token obtido pelos endpoints reais de login (IntegracaoTestBase). Unico mock: EmailService (API Resend).
- * Isolamento: cada teste cadastra seus proprios alunos pelo endpoint /api/alunos e usa nomes com System.nanoTime().
+ * Isolamento: o cadastro direto de aluno saiu da API (o aluno nasce no convite do responsavel), entao cada
+ * teste grava seus proprios alunos e o vinculo com o responsavel direto no banco, como preparacao do cenario.
  */
 class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
 
     @Autowired
     private FichaSaudeRepository fichaSaudeRepository; // usado so para conferir persistencia
 
+    @Autowired
+    private AlunoRepository alunoRepository;
+
+    @Autowired
+    private AlunoResponsavelRepository alunoResponsavelRepository;
+
     private String tokenDirecao;
 
+    private Usuario responsavel;
+
+    private String tokenResponsavel;
+
     @BeforeEach
-    void autenticarDirecao() {
+    void autenticarUsuarios() {
         tokenDirecao = autenticar(criarUsuario(Perfil.DIRECAO));
+        responsavel = criarUsuario(Perfil.RESPONSAVEL);
+        tokenResponsavel = autenticar(responsavel);
     }
 
     // ---------- POST /api/alunos/{alunoId}/fichas-saude ----------
 
     @Test
-    void cadastrar_comoDirecao_deveRetornar201ComLocationEPersistirObservacoesCifradas() {
+    void cadastrar_comoResponsavel_deveRetornar201ComLocationEPersistirObservacoesCifradas() {
         long ts = System.nanoTime();
         UUID alunoId = criarAluno("Aluno Ficha " + ts);
         FichaSaudeRequest request = new FichaSaudeRequest("  Alergias " + ts + "  ", "Alergia a amendoim");
 
         ResponseEntity<Void> response = client.post().uri(fichasPath(alunoId))
-                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
+                .header(HttpHeaders.AUTHORIZATION, bearer(tokenResponsavel))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
@@ -95,6 +115,22 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
     }
 
     @Test
+    void cadastrar_comoDirecao_deveRetornar403ENaoPersistir() {
+        UUID alunoId = criarAluno("Aluno Direcao " + System.nanoTime());
+
+        ResponseEntity<Map<String, Object>> response = client.post().uri(fichasPath(alunoId))
+                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new FichaSaudeRequest("Tentativa da direcao", null))
+                .retrieve()
+                .toEntity(new ParameterizedTypeReference<>() {});
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).containsEntry("codigo", "ACESSO_NEGADO");
+        assertThat(fichaSaudeRepository.findByAlunoId(alunoId)).isEmpty();
+    }
+
+    @Test
     void cadastrar_comoProfessor_deveRetornar403ENaoPersistir() {
         String tokenProfessor = autenticar(criarUsuario(Perfil.PROFESSOR));
         UUID alunoId = criarAluno("Aluno Professor " + System.nanoTime());
@@ -118,7 +154,7 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         UUID alunoId = criarAluno("Aluno Nome Branco " + System.nanoTime());
 
         ResponseEntity<Map<String, Object>> response = client.post().uri(fichasPath(alunoId))
-                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
+                .header(HttpHeaders.AUTHORIZATION, bearer(tokenResponsavel))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new FichaSaudeRequest("   ", "Observacao qualquer"))
                 .retrieve()
@@ -135,7 +171,7 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         UUID alunoInexistente = UUID.randomUUID();
 
         ResponseEntity<Map<String, Object>> response = client.post().uri(fichasPath(alunoInexistente))
-                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
+                .header(HttpHeaders.AUTHORIZATION, bearer(tokenResponsavel))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new FichaSaudeRequest("Ficha orfa", null))
                 .retrieve()
@@ -244,7 +280,7 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
                 new AtualizarFichaSaudeRequest("Nome novo " + ts, "Observacao nova", 0L);
 
         ResponseEntity<FichaSaudeResponse> response = client.put().uri(fichasPath(alunoId) + "/" + fichaId)
-                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
+                .header(HttpHeaders.AUTHORIZATION, bearer(tokenResponsavel))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
@@ -278,7 +314,7 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
                 new AtualizarFichaSaudeRequest("Edicao concorrente " + ts, null, 7L);
 
         ResponseEntity<Map<String, Object>> response = client.put().uri(fichasPath(alunoId) + "/" + fichaId)
-                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
+                .header(HttpHeaders.AUTHORIZATION, bearer(tokenResponsavel))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
@@ -301,7 +337,7 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         UUID fichaId = criarFicha(alunoId, "Sem versao " + ts, null);
 
         ResponseEntity<Map<String, Object>> response = client.put().uri(fichasPath(alunoId) + "/" + fichaId)
-                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
+                .header(HttpHeaders.AUTHORIZATION, bearer(tokenResponsavel))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new AtualizarFichaSaudeRequest("Nome qualquer", null, null))
                 .retrieve()
@@ -321,7 +357,7 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         UUID fichaId = criarFicha(alunoId, "Para excluir " + ts, "Temporaria");
 
         ResponseEntity<Void> response = client.delete().uri(fichasPath(alunoId) + "/" + fichaId)
-                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
+                .header(HttpHeaders.AUTHORIZATION, bearer(tokenResponsavel))
                 .retrieve()
                 .toBodilessEntity();
 
@@ -342,7 +378,7 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
 
         ResponseEntity<Map<String, Object>> response = client.delete()
                 .uri(fichasPath(alunoId) + "/" + UUID.randomUUID())
-                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
+                .header(HttpHeaders.AUTHORIZATION, bearer(tokenResponsavel))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
@@ -357,22 +393,30 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         return "/api/alunos/" + alunoId + "/fichas-saude";
     }
 
-    /** Cadastra um aluno pelo endpoint real /api/alunos (como DIRECAO) e devolve o id gerado. */
+    /**
+     * Grava um aluno ativo direto no banco e o vincula ao responsavel do teste.
+     * O cadastro direto de aluno saiu da API; aqui o aluno e so preparacao do cenario.
+     */
     private UUID criarAluno(String nome) {
-        ResponseEntity<AlunoResponse> response = client.post().uri("/api/alunos")
-                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new CadastrarAlunoRequest(nome, LocalDate.of(2022, 3, 15)))
-                .retrieve()
-                .toEntity(AlunoResponse.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        return response.getBody().id();
+        Aluno aluno = new Aluno();
+        aluno.setNome(nome);
+        aluno.setDataNascimento(LocalDate.of(2022, 3, 15));
+        aluno.setAtivo(true);
+        UUID alunoId = alunoRepository.saveAndFlush(aluno).getId();
+
+        AlunoResponsavel vinculo = new AlunoResponsavel();
+        vinculo.setAlunoId(alunoId);
+        vinculo.setResponsavelId(responsavel.getId());
+        vinculo.setCriadoEm(Instant.now());
+        alunoResponsavelRepository.saveAndFlush(vinculo);
+
+        return alunoId;
     }
 
-    /** Cria uma ficha pelo endpoint real (como DIRECAO) e devolve o id do header Location. */
+    /** Cria uma ficha pelo endpoint real (como RESPONSAVEL do aluno) e devolve o id do header Location. */
     private UUID criarFicha(UUID alunoId, String nome, String observacoes) {
         ResponseEntity<Void> response = client.post().uri(fichasPath(alunoId))
-                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
+                .header(HttpHeaders.AUTHORIZATION, bearer(tokenResponsavel))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new FichaSaudeRequest(nome, observacoes))
                 .retrieve()
