@@ -54,7 +54,11 @@ public class ObservacaoController {
     }
 
     @PutMapping("/{observacaoId}")
-    public ResponseEntity<ObservacaoResponse> atualizar(@PathVariable UUID alunoId, @PathVariable UUID observacaoId, @Valid @RequestBody AtualizarObservacaoRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<ObservacaoResponse> atualizar(
+            @PathVariable UUID alunoId,
+            @PathVariable UUID observacaoId,
+            @Valid @RequestBody AtualizarObservacaoRequest request,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
         var resposta = observacoes.atualizar(alunoId, observacaoId, request.paraDominio(), request.versao(), UsuarioAtual.de(autenticado));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }

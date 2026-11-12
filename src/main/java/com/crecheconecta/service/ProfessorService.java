@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.crecheconecta.repository.TurmaProfessorRepository;
 import java.time.Clock;
 
-import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 

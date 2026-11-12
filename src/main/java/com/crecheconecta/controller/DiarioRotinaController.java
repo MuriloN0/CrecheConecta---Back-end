@@ -32,7 +32,10 @@ public class DiarioRotinaController {
 
     // GET /api/turmas/{turmaId}/diarios/2026-11-07  -> alunos da turma com o diário do dia
     @GetMapping("/{data}")
-    public ResponseEntity<List<DiarioAlunoResponse>> consultar(@PathVariable UUID turmaId, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<List<DiarioAlunoResponse>> consultar(
+            @PathVariable UUID turmaId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = diarios.consultar(turmaId, data, UsuarioAtual.de(autenticado));
 
@@ -41,7 +44,12 @@ public class DiarioRotinaController {
 
     // PUT /api/turmas/{turmaId}/diarios/2026-11-07/alunos/{alunoId}  -> cria ou edita
     @PutMapping("/{data}/alunos/{alunoId}")
-    public ResponseEntity<DiarioRegistroResponse> registrar(@PathVariable UUID turmaId, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data, @PathVariable UUID alunoId, @Valid @RequestBody RegistrarDiarioRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<DiarioRegistroResponse> registrar(
+            @PathVariable UUID turmaId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @PathVariable UUID alunoId,
+            @Valid @RequestBody RegistrarDiarioRequest request,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = diarios.registrar(turmaId, alunoId, data, request, UsuarioAtual.de(autenticado));
 
@@ -49,7 +57,11 @@ public class DiarioRotinaController {
     }
 
     @DeleteMapping("/{data}/alunos/{alunoId}")
-    public ResponseEntity<Void> excluir(@PathVariable UUID turmaId, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data, @PathVariable UUID alunoId, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Void> excluir(
+            @PathVariable UUID turmaId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @PathVariable UUID alunoId,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         diarios.excluir(turmaId, alunoId, data, UsuarioAtual.de(autenticado));
 

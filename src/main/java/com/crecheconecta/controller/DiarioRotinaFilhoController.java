@@ -31,7 +31,10 @@ public class DiarioRotinaFilhoController {
 
     // GET /api/meus-filhos/{alunoId}/diario?data=2026-11-02  (sem "data" = diário mais recente)
     @GetMapping
-    public ResponseEntity<DiarioRotinaResponse> consultar(@PathVariable UUID alunoId, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<DiarioRotinaResponse> consultar(
+            @PathVariable UUID alunoId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
         var resposta = diario.consultar(alunoId, data, UsuarioAtual.de(autenticado));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }

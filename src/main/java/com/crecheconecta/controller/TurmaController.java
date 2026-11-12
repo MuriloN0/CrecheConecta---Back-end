@@ -39,7 +39,11 @@ public class TurmaController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<TurmaResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(required = false) Boolean ativo, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<TurmaResponse>> listar(
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho,
+            @RequestParam(required = false) Boolean ativo,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = turmas.listar(pagina, tamanho, ativo, UsuarioAtual.de(autenticado));
 

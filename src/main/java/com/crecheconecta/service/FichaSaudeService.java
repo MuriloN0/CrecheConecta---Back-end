@@ -40,7 +40,15 @@ public class FichaSaudeService {
     private final AuditoriaService auditoria;
     private final Clock clock;
 
-    public FichaSaudeService(FichaSaudeRepository fichas, VinculoResponsavelService acessoResponsavel, AlunoRepository alunos, UsuarioRepository usuarios, TurmaProfessorRepository turmasProfessores, CriptografiaService cripto, AuditoriaService auditoria, Clock clock) {
+    public FichaSaudeService(
+            FichaSaudeRepository fichas,
+            VinculoResponsavelService acessoResponsavel,
+            AlunoRepository alunos,
+            UsuarioRepository usuarios,
+            TurmaProfessorRepository turmasProfessores,
+            CriptografiaService cripto,
+            AuditoriaService auditoria,
+            Clock clock) {
         this.fichas = fichas;
         this.acessoResponsavel = acessoResponsavel;
         this.alunos = alunos;

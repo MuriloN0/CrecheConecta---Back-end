@@ -57,7 +57,10 @@ public class DirecaoController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<DirecaoResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<DirecaoResponse>> listar(
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = direcao.listar(pagina, tamanho, UsuarioAtual.de(autenticado));
 

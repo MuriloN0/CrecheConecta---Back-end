@@ -45,7 +45,10 @@ public class ProfessorController {
     }
 
     @GetMapping("/pendentes")
-    public ResponseEntity<Page<ProfessorResponse>> listarPendentes(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<ProfessorResponse>> listarPendentes(
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = aprovacoes.listarPendentes(pagina, tamanho, UsuarioAtual.de(autenticado));
 
@@ -53,7 +56,10 @@ public class ProfessorController {
     }
 
     @PostMapping("/{professorId}/aprovar")
-    public ResponseEntity<ProfessorResponse> aprovar(@PathVariable UUID professorId, @Valid @RequestBody DecidirCadastroProfessorRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<ProfessorResponse> aprovar(
+            @PathVariable UUID professorId,
+            @Valid @RequestBody DecidirCadastroProfessorRequest request,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = aprovacoes.aprovar(professorId, request.versao(), UsuarioAtual.de(autenticado));
 
@@ -61,7 +67,10 @@ public class ProfessorController {
     }
 
     @PostMapping("/{professorId}/rejeitar")
-    public ResponseEntity<ProfessorResponse> rejeitar(@PathVariable UUID professorId, @Valid @RequestBody DecidirCadastroProfessorRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<ProfessorResponse> rejeitar(
+            @PathVariable UUID professorId,
+            @Valid @RequestBody DecidirCadastroProfessorRequest request,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = aprovacoes.rejeitar(professorId, request.versao(), UsuarioAtual.de(autenticado));
 
@@ -69,7 +78,11 @@ public class ProfessorController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ProfessorResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(required = false) SituacaoCadastro situacao, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<ProfessorResponse>> listar(
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho,
+            @RequestParam(required = false) SituacaoCadastro situacao,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = professores.listar(pagina, tamanho, situacao, UsuarioAtual.de(autenticado));
 
@@ -86,7 +99,10 @@ public class ProfessorController {
 
 
     @PostMapping("/{professorId}/inativar")
-    public ResponseEntity<ProfessorResponse> inativar(@PathVariable UUID professorId, @Valid @RequestBody DecidirCadastroProfessorRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<ProfessorResponse> inativar(
+            @PathVariable UUID professorId,
+            @Valid @RequestBody DecidirCadastroProfessorRequest request,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = professores.inativar(professorId, request.versao(), UsuarioAtual.de(autenticado));
 

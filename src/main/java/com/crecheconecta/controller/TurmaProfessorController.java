@@ -29,7 +29,10 @@ public class TurmaProfessorController {
     }
 
     @PostMapping
-    public ResponseEntity<TurmaProfessorResponse> vincular(@PathVariable UUID turmaId, @Valid @RequestBody VincularProfessorTurmaRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<TurmaProfessorResponse> vincular(
+            @PathVariable UUID turmaId,
+            @Valid @RequestBody VincularProfessorTurmaRequest request,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = service.vincular(turmaId, request.professorId(), UsuarioAtual.de(autenticado));
 
@@ -37,7 +40,12 @@ public class TurmaProfessorController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<TurmaProfessorResponse>> listar(@PathVariable UUID turmaId, @RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(defaultValue = "false") boolean incluirEncerrados, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<TurmaProfessorResponse>> listar(
+            @PathVariable UUID turmaId,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho,
+            @RequestParam(defaultValue = "false") boolean incluirEncerrados,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = service.listar(turmaId, pagina, tamanho, incluirEncerrados, UsuarioAtual.de(autenticado));
 

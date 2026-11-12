@@ -38,7 +38,12 @@ public class MalaVirtualFilhoController {
     }
 
     @PutMapping("/{malaId}/itens/{itemId}")
-    public ResponseEntity<MalaVirtualResponse> marcarItem(@PathVariable UUID alunoId, @PathVariable UUID malaId, @PathVariable UUID itemId, @Valid @RequestBody MarcarItemMalaRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<MalaVirtualResponse> marcarItem(
+            @PathVariable UUID alunoId,
+            @PathVariable UUID malaId,
+            @PathVariable UUID itemId,
+            @Valid @RequestBody MarcarItemMalaRequest request,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
         var resposta = malaVirtual.marcarItem(alunoId, malaId, itemId, request, UsuarioAtual.de(autenticado));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }

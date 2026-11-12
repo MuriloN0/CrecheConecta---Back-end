@@ -46,7 +46,14 @@ public class DiarioRotinaService {
     private final MalaVirtualSuporte suporte;
     private final AuditoriaService auditoria;
 
-    public DiarioRotinaService(VinculoProfessorService vinculoProfessor, TurmaRepository turmas, MatriculaTurmaRepository matriculas, AlunoRepository alunos, DiarioRotinaRepository diarios, MalaVirtualSuporte suporte, AuditoriaService auditoria) {
+    public DiarioRotinaService(
+            VinculoProfessorService vinculoProfessor,
+            TurmaRepository turmas,
+            MatriculaTurmaRepository matriculas,
+            AlunoRepository alunos,
+            DiarioRotinaRepository diarios,
+            MalaVirtualSuporte suporte,
+            AuditoriaService auditoria) {
         this.vinculoProfessor = vinculoProfessor;
         this.turmas = turmas;
         this.matriculas = matriculas;

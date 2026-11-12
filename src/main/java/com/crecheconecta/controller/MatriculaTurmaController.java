@@ -37,7 +37,12 @@ public class MatriculaTurmaController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<MatriculaTurmaResponse>> listar(@PathVariable UUID turmaId, @RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(defaultValue = "false") boolean incluirEncerradas, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<MatriculaTurmaResponse>> listar(
+            @PathVariable UUID turmaId,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho,
+            @RequestParam(defaultValue = "false") boolean incluirEncerradas,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = service.listar(turmaId, pagina, tamanho, incluirEncerradas, UsuarioAtual.de(autenticado));
 

@@ -109,7 +109,8 @@ class TermoVersaoControllerIntegrationTest extends BaseControllerIntegrationTest
         String novoIdentificador = idUnico("editado");
 
         // Act
-        var resposta = chamar(HttpMethod.PUT, ROTA + "/" + rascunho.id(), tokenDirecao, new AtualizarTermoVersaoRequest(novoIdentificador, "Termo editado", "Política editada", rascunho.versao()), TermoVersaoResponse.class);
+        var edicaoTermo = new AtualizarTermoVersaoRequest(novoIdentificador, "Termo editado", "Política editada", rascunho.versao());
+        var resposta = chamar(HttpMethod.PUT, ROTA + "/" + rascunho.id(), tokenDirecao, edicaoTermo, TermoVersaoResponse.class);
 
         // Assert
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);

@@ -29,7 +29,11 @@ public class AlunoController {
 
 
     @GetMapping
-    public ResponseEntity<Page<AlunoResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(required = false) Boolean ativo, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<AlunoResponse>> listar(
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho,
+            @RequestParam(required = false) Boolean ativo,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = alunos.listar(pagina, tamanho, ativo, UsuarioAtual.de(autenticado));
 

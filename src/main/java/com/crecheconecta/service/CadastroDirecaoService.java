@@ -41,7 +41,16 @@ public class CadastroDirecaoService {
     private final TransactionTemplate transacao;
     private final String urlCadastro;
 
-    public CadastroDirecaoService(UsuarioRepository usuarios, ConviteCadastroRepository convites, TokenConviteService tokens, PasswordEncoder encoder, EmailService emails, AuditoriaService auditoria, Clock clock, PlatformTransactionManager transactionManager, @Value("${app.cadastro.direcao.url}") String urlCadastro) {
+    public CadastroDirecaoService(
+            UsuarioRepository usuarios,
+            ConviteCadastroRepository convites,
+            TokenConviteService tokens,
+            PasswordEncoder encoder,
+            EmailService emails,
+            AuditoriaService auditoria,
+            Clock clock,
+            PlatformTransactionManager transactionManager,
+            @Value("${app.cadastro.direcao.url}") String urlCadastro) {
 
         this.usuarios = usuarios;
         this.convites = convites;

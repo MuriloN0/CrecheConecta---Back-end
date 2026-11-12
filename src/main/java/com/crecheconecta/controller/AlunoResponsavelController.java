@@ -29,7 +29,10 @@ public class AlunoResponsavelController {
     }
 
     @PostMapping
-    public ResponseEntity<AlunoResponsavelResponse> vincular(@PathVariable UUID alunoId, @Valid @RequestBody VincularResponsavelRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<AlunoResponsavelResponse> vincular(
+            @PathVariable UUID alunoId,
+            @Valid @RequestBody VincularResponsavelRequest request,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = service.vincular(alunoId, request.responsavelId(), UsuarioAtual.de(autenticado));
 

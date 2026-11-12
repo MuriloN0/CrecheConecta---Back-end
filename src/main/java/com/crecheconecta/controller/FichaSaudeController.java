@@ -65,7 +65,11 @@ public class FichaSaudeController {
 
     @PutMapping("/{fichaId}")
     @PreAuthorize(ESCRITA)
-    public ResponseEntity<FichaSaudeResponse> atualizar(@PathVariable UUID alunoId, @PathVariable UUID fichaId, @Valid @RequestBody AtualizarFichaSaudeRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<FichaSaudeResponse> atualizar(
+            @PathVariable UUID alunoId,
+            @PathVariable UUID fichaId,
+            @Valid @RequestBody AtualizarFichaSaudeRequest request,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
         var resposta = fichas.atualizar(alunoId, fichaId, request.paraDominio(), request.versao(), UsuarioAtual.de(autenticado));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }

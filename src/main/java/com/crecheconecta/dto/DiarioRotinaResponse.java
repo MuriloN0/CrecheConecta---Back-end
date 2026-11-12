@@ -15,6 +15,15 @@ import java.util.UUID;
 public record DiarioRotinaResponse(UUID id, UUID alunoId, LocalDate data, Alimentacao alimentacao, Sono sono, boolean evacuacao, Humor humor, Higiene higiene, String observacaoProfessor) {
 
     public static DiarioRotinaResponse de(DiarioRotina diario) {
-        return new DiarioRotinaResponse(diario.getId(), diario.getAlunoId(), diario.getData(), diario.getAlimentacao(), diario.getSono(), diario.isEvacuacao(), diario.getHumor(), diario.getHigiene(), diario.getObservacaoProfessor());
+        return new DiarioRotinaResponse(
+                diario.getId(),
+                diario.getAlunoId(),
+                diario.getData(),
+                diario.getAlimentacao(),
+                diario.getSono(),
+                diario.isEvacuacao(),
+                diario.getHumor(),
+                diario.getHigiene(),
+                diario.getObservacaoProfessor());
     }
 }

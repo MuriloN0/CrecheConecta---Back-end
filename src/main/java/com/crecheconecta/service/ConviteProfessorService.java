@@ -35,7 +35,14 @@ public class ConviteProfessorService {
     @Value("${app.cadastro.responsavel.url:http://localhost:4200/cadastro/responsavel}")
     private String urlCadastroResponsavel;
 
-    public ConviteProfessorService(ConviteCadastroRepository convites, UsuarioRepository usuarios, TokenConviteService tokens, EmailService emails, AuditoriaService auditoria, PlatformTransactionManager transactionManager, @Value("${app.cadastro.url}") String urlCadastro) {
+    public ConviteProfessorService(
+            ConviteCadastroRepository convites,
+            UsuarioRepository usuarios,
+            TokenConviteService tokens,
+            EmailService emails,
+            AuditoriaService auditoria,
+            PlatformTransactionManager transactionManager,
+            @Value("${app.cadastro.url}") String urlCadastro) {
         this.convites = convites;
         this.usuarios = usuarios;
         this.tokens = tokens;
