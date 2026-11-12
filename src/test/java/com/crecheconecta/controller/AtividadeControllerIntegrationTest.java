@@ -75,7 +75,7 @@ class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
                 .retrieve()
                 .toBodilessEntity();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK); // QUEBRA PROPOSITAL - o correto e CREATED
         String location = response.getHeaders().getLocation().toString();
         assertThat(location).startsWith(BASE_PATH + "/");
 

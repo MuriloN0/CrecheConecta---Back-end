@@ -33,7 +33,7 @@ class AtividadePrazoValidationTest {
 
         // Assert
         assertEquals(
-                "Prazo de conclusão é obrigatório para atividade de casa",
+                "QUEBRA PROPOSITAL - mensagem errada",
                 ex.getMessage()
         );
     }
