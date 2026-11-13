@@ -34,10 +34,8 @@ public class SecurityConfig {
                                 "/api/turmas/*/matriculas/*/encerrar", "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar", "/api/direcao/me/inativar", "/api/direcao/convites", "/api/cadastro/direcao/consultar-convite",
                                 "/api/cadastro/direcao/concluir", "/api/direcao/me", "/api/comunicados", "/api/comunicados/*", "/api/comunicados/*/inativar", "/api/turmas/*/chamadas/*/alunos/*",
                                 "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*", "/api/turmas/*/malas", "/api/turmas/*/malas/*", "/api/meus-filhos/*/mala/*/itens/*",
-                                "/api/turmas/*/diarios/*/alunos/*",
-                                "/api/termos", "/api/termos/*", "/api/termos/*/publicar",
-                                "/api/solicitacoes-materiais", "/api/solicitacoes-materiais/*", "/api/solicitacoes-materiais/*/mensagens",
-                                "/api/solicitacoes-materiais/*/atender", "/api/solicitacoes-materiais/*/recusar", "/api/solicitacoes-materiais/*/cancelar"))
+                                "/api/turmas/*/diarios/*/alunos/*", "/api/termos", "/api/termos/*", "/api/termos/*/publicar", "/api/solicitacoes-materiais", "/api/solicitacoes-materiais/*", "/api/solicitacoes-materiais/*/mensagens",
+                                "/api/solicitacoes-materiais/*/atender", "/api/solicitacoes-materiais/*/recusar", "/api/solicitacoes-materiais/*/cancelar", "/api/chat/contatos/*/mensagens", "/api/notificacoes/*/leitura"))
 
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
@@ -132,6 +130,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/meus-filhos/*/mala").hasRole("RESPONSAVEL")
                         .requestMatchers(HttpMethod.PUT, "/api/meus-filhos/*/mala/*/itens/*").hasRole("RESPONSAVEL")
 
+                        .requestMatchers(HttpMethod.GET, "/api/chat/contatos", "/api/chat/contatos/*/mensagens", "/api/notificacoes", "/api/notificacoes/pendencias").hasAnyRole("DIRECAO", "PROFESSOR", "RESPONSAVEL")
+                        .requestMatchers(HttpMethod.POST, "/api/chat/contatos/*/mensagens").hasAnyRole("DIRECAO", "PROFESSOR", "RESPONSAVEL")
+                        .requestMatchers(HttpMethod.PUT, "/api/notificacoes/*/leitura").hasAnyRole("DIRECAO", "PROFESSOR", "RESPONSAVEL")
 
                         .requestMatchers("/api/atividades/**").authenticated()
                         .anyRequest()
