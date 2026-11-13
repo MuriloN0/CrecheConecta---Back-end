@@ -224,9 +224,6 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         assertThat(response.getBody())
                 .extracting(FichaSaudeResumoResponse::nome)
                 .containsExactlyInAnyOrder("Alergias " + ts, "Medicamentos " + ts);
-        assertThat(response.getBody())
-                .extracting(FichaSaudeResumoResponse::quantidadeAnexos)
-                .containsOnly(0);
     }
 
     @Test
@@ -349,7 +346,6 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         assertThat(body.versao()).isZero();
         assertThat(body.dataCriacao()).isNotNull();
         assertThat(body.dataAtualizacao()).isNotNull();
-        assertThat(body.anexos()).isEmpty();
     }
 
     @Test

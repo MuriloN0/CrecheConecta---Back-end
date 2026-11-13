@@ -2,7 +2,7 @@ package com.crecheconecta.entity;
 
 import jakarta.persistence.*;
 import java.time.Instant;
-import java.util.*;
+import java.util.UUID;
 import lombok.*;
 
 @Entity
@@ -30,16 +30,4 @@ public class FichaSaude {
     private Instant dataAtualizacao;
 
     @Version private Long versao;
-
-    @OneToMany(
-            mappedBy = "ficha",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true,
-            fetch = FetchType.EAGER)
-    private List<AnexoSaude> anexos = new ArrayList<>();
-
-    public void adicionarAnexo(AnexoSaude anexo) {
-        anexo.setFicha(this);
-        this.anexos.add(anexo);
-    }
 }
