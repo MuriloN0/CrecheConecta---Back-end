@@ -3,6 +3,7 @@ package com.crecheconecta.service;
 import com.crecheconecta.entity.AtividadeEntity;
 import com.crecheconecta.model.TipoAtividade;
 import com.crecheconecta.repository.AtividadeRepository;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -24,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.flyway.enabled=false"
 })
+@Tag("integration")
 class AtividadeRepositoryIntegracaoTest {
 
     @Autowired

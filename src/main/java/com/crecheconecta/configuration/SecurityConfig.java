@@ -27,11 +27,18 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/api/auth/login", "/api/auth/confirmar-login", "/api/auth/logout", "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha",
-                                "/api/termo/aceite", "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*", "/api/atividades", "/api/atividades/**", "/api/professores/convites", "/api/cadastro/professores/consultar-convite",
-                                "/api/cadastro/professores/concluir", "/api/cadastro/responsavel/**", "/api/alunos/convites", "/api/professores/*/aprovar", "/api/professores/*/rejeitar", "/api/professores/*", "/api/professores/*/inativar", "/api/alunos", "/api/alunos/*",
-                                "/api/alunos/*/inativar", "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar", "/api/turmas", "/api/turmas/*", "/api/turmas/*/inativar", "/api/turmas/*/matriculas",
-                                "/api/turmas/*/matriculas/*/encerrar", "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar", "/api/direcao/me/inativar", "/api/direcao/convites", "/api/cadastro/direcao/consultar-convite",
+                        .ignoringRequestMatchers("/api/auth/login", "/api/auth/confirmar-login", "/api/auth/logout",
+                                "/api/auth/esqueci-senha", "/api/auth/confirmar-recuperacao", "/api/auth/redefinir-senha",
+                                "/api/termo/aceite", "/api/alunos/*/fichas-saude", "/api/alunos/*/fichas-saude/*",
+                                "/api/atividades", "/api/atividades/**", "/api/professores/convites",
+                                "/api/cadastro/professores/consultar-convite",
+                                "/api/cadastro/professores/concluir", "/api/cadastro/responsavel/**", "/api/alunos/convites",
+                                "/api/professores/*/aprovar", "/api/professores/*/rejeitar", "/api/professores/*",
+                                "/api/professores/*/inativar", "/api/alunos", "/api/alunos/*",
+                                "/api/alunos/*/inativar", "/api/alunos/*/responsaveis", "/api/alunos/*/responsaveis/*/encerrar",
+                                "/api/turmas", "/api/turmas/*", "/api/turmas/*/inativar", "/api/turmas/*/matriculas",
+                                "/api/turmas/*/matriculas/*/encerrar", "/api/turmas/*/professores", "/api/turmas/*/professores/*/encerrar",
+                                "/api/direcao/me/inativar", "/api/direcao/convites", "/api/cadastro/direcao/consultar-convite",
                                 "/api/cadastro/direcao/concluir", "/api/direcao/me", "/api/comunicados", "/api/comunicados/*", "/api/comunicados/*/inativar", "/api/turmas/*/chamadas/*/alunos/*",
                                 "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*", "/api/turmas/*/malas", "/api/turmas/*/malas/*", "/api/meus-filhos/*/mala/*/itens/*",
                                 "/api/turmas/*/diarios/*/alunos/*",

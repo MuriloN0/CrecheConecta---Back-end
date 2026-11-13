@@ -27,7 +27,13 @@ public class AtividadeService {
     private final AuditoriaService auditoria;
     private final Clock clock;
 
-    public AtividadeService(AtividadeRepository atividades, AtividadeTituloValidation tituloValidation, AtividadePrazoValidation prazoValidation, AtividadeAcessoService acesso, AuditoriaService auditoria, Clock clock) {
+    public AtividadeService(
+            AtividadeRepository atividades,
+            AtividadeTituloValidation tituloValidation,
+            AtividadePrazoValidation prazoValidation,
+            AtividadeAcessoService acesso,
+            AuditoriaService auditoria,
+            Clock clock) {
 
         this.atividades = atividades;
         this.tituloValidation = tituloValidation;

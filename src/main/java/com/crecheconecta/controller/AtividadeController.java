@@ -57,7 +57,9 @@ public class AtividadeController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AtividadeResponseDTO>> listarTodas(@RequestHeader(value = "turmaUUID", required = false) UUID turmaId, @RequestParam(value = "tipo", required = false) TipoAtividade tipo) {
+    public ResponseEntity<List<AtividadeResponseDTO>> listarTodas(
+            @RequestHeader(value = "turmaUUID", required = false) UUID turmaId,
+            @RequestParam(value = "tipo", required = false) TipoAtividade tipo) {
 
         var resposta = atividadeService.listar(turmaId, tipo)
                 .stream()

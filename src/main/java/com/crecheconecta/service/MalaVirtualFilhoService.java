@@ -31,7 +31,14 @@ public class MalaVirtualFilhoService {
     private final AuditoriaService auditoria;
     private final Clock clock;
 
-    public MalaVirtualFilhoService(VinculoResponsavelService acessoResponsavel, MalaVirtualRepository malas, ItemMalaRepository itens, MarcacaoItemMalaRepository marcacoes, MalaVirtualSuporte suporte, AuditoriaService auditoria, Clock clock) {
+    public MalaVirtualFilhoService(
+            VinculoResponsavelService acessoResponsavel,
+            MalaVirtualRepository malas,
+            ItemMalaRepository itens,
+            MarcacaoItemMalaRepository marcacoes,
+            MalaVirtualSuporte suporte,
+            AuditoriaService auditoria,
+            Clock clock) {
         this.acessoResponsavel = acessoResponsavel;
         this.malas = malas;
         this.itens = itens;

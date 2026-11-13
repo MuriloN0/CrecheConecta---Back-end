@@ -34,7 +34,10 @@ public class ComunicadoController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ComunicadoResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<ComunicadoResponse>> listar(
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = comunicados.listar(pagina, tamanho, UsuarioAtual.de(autenticado));
 

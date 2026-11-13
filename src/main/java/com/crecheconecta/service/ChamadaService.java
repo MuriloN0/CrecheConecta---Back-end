@@ -39,7 +39,14 @@ public class ChamadaService {
     private final AuditoriaService auditoria;
     private final Clock clock;
 
-    public ChamadaService(VinculoProfessorService vinculoProfessor, TurmaRepository turmas, MatriculaTurmaRepository matriculas, AlunoRepository alunos, PresencaRepository presencas, AuditoriaService auditoria, Clock clock) {
+    public ChamadaService(
+            VinculoProfessorService vinculoProfessor,
+            TurmaRepository turmas,
+            MatriculaTurmaRepository matriculas,
+            AlunoRepository alunos,
+            PresencaRepository presencas,
+            AuditoriaService auditoria,
+            Clock clock) {
 
         this.vinculoProfessor = vinculoProfessor;
         this.turmas = turmas;

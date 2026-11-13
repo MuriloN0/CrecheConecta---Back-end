@@ -61,7 +61,11 @@ public class MalaVirtualController {
     }
 
     @PutMapping("/{malaId}")
-    public ResponseEntity<MalaVirtualTurmaResponse> atualizar(@PathVariable UUID turmaId, @PathVariable UUID malaId, @Valid @RequestBody AtualizarMalaVirtualRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<MalaVirtualTurmaResponse> atualizar(
+            @PathVariable UUID turmaId,
+            @PathVariable UUID malaId,
+            @Valid @RequestBody AtualizarMalaVirtualRequest request,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = malas.atualizar(turmaId, malaId, request, UsuarioAtual.de(autenticado));
 

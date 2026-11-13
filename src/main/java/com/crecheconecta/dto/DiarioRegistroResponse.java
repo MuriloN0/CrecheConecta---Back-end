@@ -13,7 +13,19 @@ import java.util.UUID;
  * Diário de Rotina como o PROFESSOR vê. Traz a "versao" (para editar) e "editavel"
  * (só o professor que criou o diário pode alterá-lo ou excluí-lo).
  */
-public record DiarioRegistroResponse(UUID id, UUID turmaId, UUID alunoId, LocalDate data, Alimentacao alimentacao, Sono sono, boolean evacuacao, Humor humor, Higiene higiene, String observacaoProfessor, boolean editavel, Long versao) {
+public record DiarioRegistroResponse(
+        UUID id,
+        UUID turmaId,
+        UUID alunoId,
+        LocalDate data,
+        Alimentacao alimentacao,
+        Sono sono,
+        boolean evacuacao,
+        Humor humor,
+        Higiene higiene,
+        String observacaoProfessor,
+        boolean editavel,
+        Long versao) {
 
     public static DiarioRegistroResponse de(DiarioRotina diario, UUID professorLogado) {
         return new DiarioRegistroResponse(

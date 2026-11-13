@@ -48,7 +48,15 @@ public class MalaVirtualService {
     private final AuditoriaService auditoria;
     private final Clock clock;
 
-    public MalaVirtualService(VinculoProfessorService vinculoProfessor, TurmaRepository turmas, MatriculaTurmaRepository matriculas, MalaVirtualRepository malas, ItemMalaRepository itens, MalaVirtualSuporte suporte, AuditoriaService auditoria, Clock clock) {
+    public MalaVirtualService(
+            VinculoProfessorService vinculoProfessor,
+            TurmaRepository turmas,
+            MatriculaTurmaRepository matriculas,
+            MalaVirtualRepository malas,
+            ItemMalaRepository itens,
+            MalaVirtualSuporte suporte,
+            AuditoriaService auditoria,
+            Clock clock) {
 
         this.vinculoProfessor = vinculoProfessor;
         this.turmas = turmas;

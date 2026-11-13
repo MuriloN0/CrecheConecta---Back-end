@@ -51,7 +51,8 @@ class ObservacaoControllerIntegrationTest extends BaseControllerIntegrationTest 
         Long versaoAntes = detalhe.getBody().versao();
 
         // editar: a resposta precisa trazer a versão NOVA
-        var edicao = chamar(HttpMethod.PUT, rota(familia.alunoId()) + "/" + observacaoId, familia.token(), new AtualizarObservacaoRequest("Alergia alimentar", "Lactose e glúten.", versaoAntes), ObservacaoResponse.class);
+        var dadosEdicao = new AtualizarObservacaoRequest("Alergia alimentar", "Lactose e glúten.", versaoAntes);
+        var edicao = chamar(HttpMethod.PUT, rota(familia.alunoId()) + "/" + observacaoId, familia.token(), dadosEdicao, ObservacaoResponse.class);
         assertThat(edicao.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(edicao.getBody()).isNotNull();
         assertThat(edicao.getBody().titulo()).isEqualTo("Alergia alimentar");

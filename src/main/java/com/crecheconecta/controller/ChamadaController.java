@@ -29,7 +29,12 @@ public class ChamadaController {
     }
 
     @GetMapping("/{data}")
-    public ResponseEntity<Page<ChamadaAlunoResponse>> consultar(@PathVariable UUID turmaId, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data, @RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<ChamadaAlunoResponse>> consultar(
+            @PathVariable UUID turmaId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = chamadas.consultar(turmaId, data, pagina, tamanho, UsuarioAtual.de(autenticado));
 
@@ -37,7 +42,12 @@ public class ChamadaController {
     }
 
     @PutMapping("/{data}/alunos/{alunoId}")
-    public ResponseEntity<PresencaResponse> registrar(@PathVariable UUID turmaId, @PathVariable UUID alunoId, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data, @Valid @RequestBody RegistrarPresencaRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<PresencaResponse> registrar(
+            @PathVariable UUID turmaId,
+            @PathVariable UUID alunoId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @Valid @RequestBody RegistrarPresencaRequest request,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = chamadas.registrar(turmaId, alunoId, data, request, UsuarioAtual.de(autenticado));
 
