@@ -1,12 +1,20 @@
-# MODELO do application-local.properties (este .example VAI pro git; o real NAO).
-# Copie para "application-local.properties" e ajuste o que for diferente da sua máquina.
+# MODELO do application-local.properties exemplo
+# Copie para "application-local.properties" e preencha. Rode com SPRING_PROFILES_ACTIVE=local.
 
-# spring.datasource.url=jdbc:postgresql://localhost:5433/CrecheConecta
-# spring.datasource.password=SUA_SENHA_AQUI
+spring.datasource.url=jdbc:postgresql://localhost:5432/crecheconecta
+spring.datasource.username=postgres
+spring.datasource.password=SUA_SENHA_AQUI
 
-# Chave AES-256 das observacoes (Base64, 32 bytes): openssl rand -base64 32
-# saude.criptografia.chave=GERE_UMA_CHAVE_BASE64_AQUI
+# Chave AES-256 das fichas e observações
+# Não troque depois de ter dados: o que foi cifrado com a chave antiga deixa de abrir.
+saude.criptografia.chave=GERE_UMA_CHAVE_BASE64_AQUI
 
-# app.email.resend.api-key=
-# app.email.resend.remetente=
-# app.seguranca.hmac-chave-base64=
+# HMAC dos códigos de login
+app.seguranca.hmac-chave-base64=GERE_UMA_CHAVE_BASE64_AQUI
+
+app.email.resend.api-key=
+app.email.resend.remetente=
+
+# Em produção (Render) use variáveis de ambiente, não este arquivo:
+# DB_URL, DB_USERNAME, DB_PASSWORD, SAUDE_CRIPTOGRAFIA_CHAVE, AUTH_HMAC_KEY_BASE64,
+# RESEND_API_KEY, RESEND_FROM, CADASTRO_URL, CADASTRO_DIRECAO_URL, APP_CORS_ALLOWED_ORIGINS
