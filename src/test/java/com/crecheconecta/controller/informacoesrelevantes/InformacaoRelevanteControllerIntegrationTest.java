@@ -1,12 +1,12 @@
-package com.crecheconecta.controller.fichasaude;
+package com.crecheconecta.controller.informacoesrelevantes;
 
 import com.crecheconecta.controller.base.IntegracaoTestBase;
 import com.crecheconecta.dto.AlunoResponsavelResponse;
-import com.crecheconecta.dto.AtualizarFichaSaudeRequest;
+import com.crecheconecta.dto.AtualizarInformacaoRelevanteRequest;
 import com.crecheconecta.dto.CadastrarTurmaRequest;
-import com.crecheconecta.dto.FichaSaudeRequest;
-import com.crecheconecta.dto.FichaSaudeResponse;
-import com.crecheconecta.dto.FichaSaudeResumoResponse;
+import com.crecheconecta.dto.InformacaoRelevanteRequest;
+import com.crecheconecta.dto.InformacaoRelevanteResponse;
+import com.crecheconecta.dto.InformacaoRelevanteResumoResponse;
 import com.crecheconecta.dto.MatriculaTurmaResponse;
 import com.crecheconecta.dto.MatricularAlunoRequest;
 import com.crecheconecta.dto.TurmaProfessorResponse;
@@ -14,11 +14,11 @@ import com.crecheconecta.dto.TurmaResponse;
 import com.crecheconecta.dto.VincularProfessorTurmaRequest;
 import com.crecheconecta.dto.VincularResponsavelRequest;
 import com.crecheconecta.entity.Aluno;
-import com.crecheconecta.entity.FichaSaude;
+import com.crecheconecta.entity.InformacaoRelevante;
 import com.crecheconecta.entity.Perfil;
 import com.crecheconecta.entity.Usuario;
 import com.crecheconecta.repository.AlunoRepository;
-import com.crecheconecta.repository.FichaSaudeRepository;
+import com.crecheconecta.repository.InformacaoRelevanteRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,26 +36,26 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Testes de integracao do FichaSaudeController (Informacoes Relevantes).
+ * Testes de integracao do InformacaoRelevanteController (Informacoes Relevantes).
  *
  * Regra de acesso:
  * - RESPONSAVEL com vinculo atual com o aluno: escreve e le;
- * - DIRECAO: le as fichas de qualquer aluno (nao escreve);
+ * - DIRECAO: le as informacoes de qualquer aluno (nao escreve);
  * - PROFESSOR: le apenas de alunos matriculados numa turma em que leciona (nao escreve).
  *
  * Fluxo real exercitado em cada teste:
- * RestClient -> HTTP real -> AutenticacaoTokenFilter/SecurityFilterChain -> FichaSaudeController
- * -> FichaSaudeService (+ VinculoResponsavelService, CriptografiaService) -> FichaSaudeRepository -> H2 em memoria
+ * RestClient -> HTTP real -> AutenticacaoTokenFilter/SecurityFilterChain -> InformacaoRelevanteController
+ * -> InformacaoRelevanteService (+ VinculoResponsavelService, CriptografiaService) -> InformacaoRelevanteRepository -> H2 em memoria
  *
  * O aluno e gravado direto no banco; vinculo, turma, matricula e professor sao montados pelos endpoints reais da direcao.
  * Unico mock: EmailService (API Resend).
  */
-class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
+class InformacaoRelevanteControllerIntegrationTest extends IntegracaoTestBase {
 
     private static final String SEM_PERMISSAO = "Você não possui permissão para esta operação.";
 
     @Autowired
-    private FichaSaudeRepository fichaSaudeRepository; // usado so para conferir persistencia
+    private InformacaoRelevanteRepository informacaoRelevanteRepository; // usado so para conferir persistencia
 
     @Autowired
     private AlunoRepository alunoRepository; // aluno é só cenário: o POST /api/alunos saiu da API
@@ -67,15 +67,15 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         tokenDirecao = autenticar(criarUsuario(Perfil.DIRECAO));
     }
 
-    // ---------- POST /api/alunos/{alunoId}/fichas-saude ----------
+    // ---------- POST /api/alunos/{alunoId}/informacoes-relevantes ----------
 
     @Test
     void cadastrar_comoResponsavelDoAluno_deveRetornar201ComLocationEPersistirObservacoesCifradas() {
         long ts = System.nanoTime();
         Familia familia = criarFamilia();
-        FichaSaudeRequest request = new FichaSaudeRequest("  Alergias " + ts + "  ", "Alergia a amendoim");
+        InformacaoRelevanteRequest request = new InformacaoRelevanteRequest("  Alergias " + ts + "  ", "Alergia a amendoim");
 
-        ResponseEntity<Void> response = client.post().uri(fichasPath(familia.alunoId()))
+        ResponseEntity<Void> response = client.post().uri(rotaInformacoes(familia.alunoId()))
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
@@ -84,11 +84,11 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         String location = response.getHeaders().getLocation().toString();
-        assertThat(location).startsWith(fichasPath(familia.alunoId()) + "/");
-        UUID fichaId = idDoLocation(location);
+        assertThat(location).startsWith(rotaInformacoes(familia.alunoId()) + "/");
+        UUID informacaoId = idDoLocation(location);
 
-        // Checa persistencia: ficha do aluno, nome sem espacos e observacoes gravadas cifradas
-        FichaSaude salva = fichaSaudeRepository.findById(fichaId).orElseThrow();
+        // Checa persistencia: informacao do aluno, nome sem espacos e observacoes gravadas cifradas
+        InformacaoRelevante salva = informacaoRelevanteRepository.findById(informacaoId).orElseThrow();
         assertThat(salva.getAlunoId()).isEqualTo(familia.alunoId());
         assertThat(salva.getNome()).isEqualTo("Alergias " + ts);
         assertThat(salva.getObservacoes())
@@ -101,16 +101,16 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
     void cadastrar_semToken_deveRetornar401ENaoPersistir() {
         UUID alunoId = criarAluno("Aluno Sem Token " + System.nanoTime());
 
-        ResponseEntity<Map<String, Object>> response = client.post().uri(fichasPath(alunoId))
+        ResponseEntity<Map<String, Object>> response = client.post().uri(rotaInformacoes(alunoId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new FichaSaudeRequest("Sem token", null))
+                .body(new InformacaoRelevanteRequest("Sem token", null))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(response.getBody()).containsEntry("codigo", "NAO_AUTENTICADO");
         assertThat(response.getHeaders().getFirst(HttpHeaders.WWW_AUTHENTICATE)).isEqualTo("Bearer");
-        assertThat(fichaSaudeRepository.findByAlunoId(alunoId)).isEmpty();
+        assertThat(informacaoRelevanteRepository.findByAlunoId(alunoId)).isEmpty();
     }
 
     @Test
@@ -118,33 +118,33 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         String tokenProfessor = autenticar(criarUsuario(Perfil.PROFESSOR));
         UUID alunoId = criarAluno("Aluno Professor " + System.nanoTime());
 
-        ResponseEntity<Map<String, Object>> response = client.post().uri(fichasPath(alunoId))
+        ResponseEntity<Map<String, Object>> response = client.post().uri(rotaInformacoes(alunoId))
                 .header(HttpHeaders.AUTHORIZATION, bearer(tokenProfessor))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new FichaSaudeRequest("Tentativa do professor", null))
+                .body(new InformacaoRelevanteRequest("Tentativa do professor", null))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(response.getBody()).containsEntry("codigo", "ACESSO_NEGADO");
         assertThat(response.getBody().get("detail")).isEqualTo(SEM_PERMISSAO);
-        assertThat(fichaSaudeRepository.findByAlunoId(alunoId)).isEmpty();
+        assertThat(informacaoRelevanteRepository.findByAlunoId(alunoId)).isEmpty();
     }
 
     @Test
     void cadastrar_comoDirecao_deveRetornar403ENaoPersistir() {
         UUID alunoId = criarAluno("Aluno Direcao Escreve " + System.nanoTime());
 
-        ResponseEntity<Map<String, Object>> response = client.post().uri(fichasPath(alunoId))
+        ResponseEntity<Map<String, Object>> response = client.post().uri(rotaInformacoes(alunoId))
                 .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new FichaSaudeRequest("Tentativa da direcao", null))
+                .body(new InformacaoRelevanteRequest("Tentativa da direcao", null))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(response.getBody()).containsEntry("codigo", "ACESSO_NEGADO");
-        assertThat(fichaSaudeRepository.findByAlunoId(alunoId)).isEmpty();
+        assertThat(informacaoRelevanteRepository.findByAlunoId(alunoId)).isEmpty();
     }
 
     @Test
@@ -152,33 +152,33 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         Familia familiaA = criarFamilia();
         Familia familiaB = criarFamilia();
 
-        ResponseEntity<Map<String, Object>> response = client.post().uri(fichasPath(familiaB.alunoId()))
+        ResponseEntity<Map<String, Object>> response = client.post().uri(rotaInformacoes(familiaB.alunoId()))
                 .header(HttpHeaders.AUTHORIZATION, bearer(familiaA.token()))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new FichaSaudeRequest("Invasao", "Nao deveria gravar"))
+                .body(new InformacaoRelevanteRequest("Invasao", "Nao deveria gravar"))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).containsEntry("codigo", "ALUNO_NAO_ENCONTRADO");
-        assertThat(fichaSaudeRepository.findByAlunoId(familiaB.alunoId())).isEmpty();
+        assertThat(informacaoRelevanteRepository.findByAlunoId(familiaB.alunoId())).isEmpty();
     }
 
     @Test
     void cadastrar_comNomeEmBranco_deveRetornar400ComCampoNome() {
         Familia familia = criarFamilia();
 
-        ResponseEntity<Map<String, Object>> response = client.post().uri(fichasPath(familia.alunoId()))
+        ResponseEntity<Map<String, Object>> response = client.post().uri(rotaInformacoes(familia.alunoId()))
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new FichaSaudeRequest("   ", "Observacao qualquer"))
+                .body(new InformacaoRelevanteRequest("   ", "Observacao qualquer"))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).containsEntry("codigo", "DADOS_INVALIDOS");
         assertThat(campos(response)).containsExactly("nome");
-        assertThat(fichaSaudeRepository.findByAlunoId(familia.alunoId())).isEmpty();
+        assertThat(informacaoRelevanteRepository.findByAlunoId(familia.alunoId())).isEmpty();
     }
 
     @Test
@@ -186,31 +186,31 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         Familia familia = criarFamilia();
         UUID alunoInexistente = UUID.randomUUID();
 
-        ResponseEntity<Map<String, Object>> response = client.post().uri(fichasPath(alunoInexistente))
+        ResponseEntity<Map<String, Object>> response = client.post().uri(rotaInformacoes(alunoInexistente))
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new FichaSaudeRequest("Ficha orfa", null))
+                .body(new InformacaoRelevanteRequest("Ficha orfa", null))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).containsEntry("codigo", "ALUNO_NAO_ENCONTRADO");
         assertThat(response.getBody().get("mensagem")).isEqualTo("Aluno não encontrado.");
-        assertThat(fichaSaudeRepository.findByAlunoId(alunoInexistente)).isEmpty();
+        assertThat(informacaoRelevanteRepository.findByAlunoId(alunoInexistente)).isEmpty();
     }
 
-    // ---------- GET /api/alunos/{alunoId}/fichas-saude ----------
+    // ---------- GET /api/alunos/{alunoId}/informacoes-relevantes ----------
 
     @Test
-    void listar_comoResponsavel_deveRetornar200SomenteComFichasDoProprioFilho() {
+    void listar_comoResponsavel_deveRetornar200SomenteComInformacoesDoProprioFilho() {
         long ts = System.nanoTime();
         Familia familiaA = criarFamilia();
         Familia familiaB = criarFamilia();
-        UUID fichaA1 = criarFicha(familiaA, "Alergias " + ts, "Lactose");
-        UUID fichaA2 = criarFicha(familiaA, "Medicamentos " + ts, "Antialergico");
-        UUID fichaB = criarFicha(familiaB, "Vacinas " + ts, null);
+        UUID informacaoA1 = criarInformacao(familiaA, "Alergias " + ts, "Lactose");
+        UUID informacaoA2 = criarInformacao(familiaA, "Medicamentos " + ts, "Antialergico");
+        UUID informacaoB = criarInformacao(familiaB, "Vacinas " + ts, null);
 
-        ResponseEntity<List<FichaSaudeResumoResponse>> response = client.get().uri(fichasPath(familiaA.alunoId()))
+        ResponseEntity<List<InformacaoRelevanteResumoResponse>> response = client.get().uri(rotaInformacoes(familiaA.alunoId()))
                 .header(HttpHeaders.AUTHORIZATION, bearer(familiaA.token()))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
@@ -218,21 +218,21 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getHeaders().getCacheControl()).contains("no-store");
         assertThat(response.getBody())
-                .extracting(FichaSaudeResumoResponse::id)
-                .containsExactlyInAnyOrder(fichaA1, fichaA2)
-                .doesNotContain(fichaB);
+                .extracting(InformacaoRelevanteResumoResponse::id)
+                .containsExactlyInAnyOrder(informacaoA1, informacaoA2)
+                .doesNotContain(informacaoB);
         assertThat(response.getBody())
-                .extracting(FichaSaudeResumoResponse::nome)
+                .extracting(InformacaoRelevanteResumoResponse::nome)
                 .containsExactlyInAnyOrder("Alergias " + ts, "Medicamentos " + ts);
     }
 
     @Test
-    void listar_fichasDoFilhoDeOutroResponsavel_deveRetornar404() {
+    void listar_informacoesDoFilhoDeOutroResponsavel_deveRetornar404() {
         Familia familiaA = criarFamilia();
         Familia familiaB = criarFamilia();
-        criarFicha(familiaB, "Ficha do B " + System.nanoTime(), "Asma");
+        criarInformacao(familiaB, "Ficha do B " + System.nanoTime(), "Asma");
 
-        ResponseEntity<Map<String, Object>> response = client.get().uri(fichasPath(familiaB.alunoId()))
+        ResponseEntity<Map<String, Object>> response = client.get().uri(rotaInformacoes(familiaB.alunoId()))
                 .header(HttpHeaders.AUTHORIZATION, bearer(familiaA.token()))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
@@ -242,25 +242,25 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
     }
 
     @Test
-    void listar_comoDirecao_deveRetornar200ComFichasDoAluno() {
+    void listar_comoDirecao_deveRetornar200ComInformacoesDoAluno() {
         long ts = System.nanoTime();
         Familia familia = criarFamilia();
-        UUID fichaId = criarFicha(familia, "Ficha vista pela direcao " + ts, "Bronquite");
+        UUID informacaoId = criarInformacao(familia, "Ficha vista pela direcao " + ts, "Bronquite");
 
-        ResponseEntity<List<FichaSaudeResumoResponse>> response = client.get().uri(fichasPath(familia.alunoId()))
+        ResponseEntity<List<InformacaoRelevanteResumoResponse>> response = client.get().uri(rotaInformacoes(familia.alunoId()))
                 .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody())
-                .extracting(FichaSaudeResumoResponse::id)
-                .containsExactly(fichaId);
+                .extracting(InformacaoRelevanteResumoResponse::id)
+                .containsExactly(informacaoId);
     }
 
     @Test
     void listar_comoDirecaoParaAlunoInexistente_deveRetornar404() {
-        ResponseEntity<Map<String, Object>> response = client.get().uri(fichasPath(UUID.randomUUID()))
+        ResponseEntity<Map<String, Object>> response = client.get().uri(rotaInformacoes(UUID.randomUUID()))
                 .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
@@ -273,34 +273,34 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
     void listar_comoProfessorDaTurmaDoAluno_deveRetornar200() {
         long ts = System.nanoTime();
         Familia familia = criarFamilia();
-        UUID fichaId = criarFicha(familia, "Ficha vista pelo professor " + ts, "Epilepsia");
+        UUID informacaoId = criarInformacao(familia, "Ficha vista pelo professor " + ts, "Epilepsia");
         Usuario professor = criarUsuario(Perfil.PROFESSOR);
         UUID turmaId = criarTurma();
         matricular(turmaId, familia.alunoId());
         vincularProfessor(turmaId, professor.getId());
 
-        ResponseEntity<List<FichaSaudeResumoResponse>> response = client.get().uri(fichasPath(familia.alunoId()))
+        ResponseEntity<List<InformacaoRelevanteResumoResponse>> response = client.get().uri(rotaInformacoes(familia.alunoId()))
                 .header(HttpHeaders.AUTHORIZATION, bearer(autenticar(professor)))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody())
-                .extracting(FichaSaudeResumoResponse::id)
-                .containsExactly(fichaId);
+                .extracting(InformacaoRelevanteResumoResponse::id)
+                .containsExactly(informacaoId);
     }
 
     @Test
     void listar_comoProfessorDeOutraTurma_deveRetornar404() {
         Familia familia = criarFamilia();
-        criarFicha(familia, "Ficha de outra turma " + System.nanoTime(), null);
+        criarInformacao(familia, "Ficha de outra turma " + System.nanoTime(), null);
         Usuario professor = criarUsuario(Perfil.PROFESSOR);
         UUID turmaDoAluno = criarTurma();
         UUID turmaDoProfessor = criarTurma();
         matricular(turmaDoAluno, familia.alunoId());
         vincularProfessor(turmaDoProfessor, professor.getId());
 
-        ResponseEntity<Map<String, Object>> response = client.get().uri(fichasPath(familia.alunoId()))
+        ResponseEntity<Map<String, Object>> response = client.get().uri(rotaInformacoes(familia.alunoId()))
                 .header(HttpHeaders.AUTHORIZATION, bearer(autenticar(professor)))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
@@ -315,7 +315,7 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         Usuario professor = criarUsuario(Perfil.PROFESSOR);
         vincularProfessor(criarTurma(), professor.getId());
 
-        ResponseEntity<Map<String, Object>> response = client.get().uri(fichasPath(familia.alunoId()))
+        ResponseEntity<Map<String, Object>> response = client.get().uri(rotaInformacoes(familia.alunoId()))
                 .header(HttpHeaders.AUTHORIZATION, bearer(autenticar(professor)))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
@@ -324,22 +324,22 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         assertThat(response.getBody()).containsEntry("codigo", "ALUNO_NAO_ENCONTRADO");
     }
 
-    // ---------- GET /api/alunos/{alunoId}/fichas-saude/{fichaId} ----------
+    // ---------- GET /api/alunos/{alunoId}/informacoes-relevantes/{informacaoId} ----------
 
     @Test
-    void visualizar_comFichaExistente_deveRetornar200ComObservacoesDecifradas() {
+    void visualizar_comInformacaoExistente_deveRetornar200ComObservacoesDecifradas() {
         long ts = System.nanoTime();
         Familia familia = criarFamilia();
-        UUID fichaId = criarFicha(familia, "Restricoes alimentares " + ts, "Nao pode comer gluten");
+        UUID informacaoId = criarInformacao(familia, "Restricoes alimentares " + ts, "Nao pode comer gluten");
 
-        ResponseEntity<FichaSaudeResponse> response = client.get().uri(fichasPath(familia.alunoId()) + "/" + fichaId)
+        ResponseEntity<InformacaoRelevanteResponse> response = client.get().uri(rotaInformacoes(familia.alunoId()) + "/" + informacaoId)
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .retrieve()
-                .toEntity(FichaSaudeResponse.class);
+                .toEntity(InformacaoRelevanteResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        FichaSaudeResponse body = response.getBody();
-        assertThat(body.id()).isEqualTo(fichaId);
+        InformacaoRelevanteResponse body = response.getBody();
+        assertThat(body.id()).isEqualTo(informacaoId);
         assertThat(body.alunoId()).isEqualTo(familia.alunoId());
         assertThat(body.nome()).isEqualTo("Restricoes alimentares " + ts);
         assertThat(body.observacoes()).isEqualTo("Nao pode comer gluten");
@@ -351,84 +351,84 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
     @Test
     void visualizar_comoDirecao_deveRetornar200ComObservacoesDecifradas() {
         Familia familia = criarFamilia();
-        UUID fichaId = criarFicha(familia, "Ficha detalhada " + System.nanoTime(), "Usa bombinha");
+        UUID informacaoId = criarInformacao(familia, "Ficha detalhada " + System.nanoTime(), "Usa bombinha");
 
-        ResponseEntity<FichaSaudeResponse> response = client.get().uri(fichasPath(familia.alunoId()) + "/" + fichaId)
+        ResponseEntity<InformacaoRelevanteResponse> response = client.get().uri(rotaInformacoes(familia.alunoId()) + "/" + informacaoId)
                 .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
                 .retrieve()
-                .toEntity(FichaSaudeResponse.class);
+                .toEntity(InformacaoRelevanteResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().observacoes()).isEqualTo("Usa bombinha");
     }
 
     @Test
-    void visualizar_comFichaInexistente_deveRetornar404ComMensagem() {
+    void visualizar_comInformacaoInexistente_deveRetornar404ComMensagem() {
         Familia familia = criarFamilia();
 
         ResponseEntity<Map<String, Object>> response = client.get()
-                .uri(fichasPath(familia.alunoId()) + "/" + UUID.randomUUID())
+                .uri(rotaInformacoes(familia.alunoId()) + "/" + UUID.randomUUID())
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody()).containsEntry("codigo", "FICHA_SAUDE_NAO_ENCONTRADA");
-        assertThat(response.getBody().get("mensagem")).isEqualTo("Ficha de saúde não encontrada.");
+        assertThat(response.getBody()).containsEntry("codigo", "INFORMACAO_RELEVANTE_NAO_ENCONTRADA");
+        assertThat(response.getBody().get("mensagem")).isEqualTo("Informação relevante não encontrada.");
     }
 
     @Test
-    void visualizar_fichaDeOutroAlunoPeloCaminhoDoProprioFilho_deveRetornar404() {
+    void visualizar_informacaoDeOutroAlunoPeloCaminhoDoProprioFilho_deveRetornar404() {
         Familia familiaA = criarFamilia();
         Familia familiaB = criarFamilia();
-        UUID fichaDoB = criarFicha(familiaB, "Ficha privada " + System.nanoTime(), "Asma");
+        UUID informacaoDoB = criarInformacao(familiaB, "Ficha privada " + System.nanoTime(), "Asma");
 
-        // Pai A usa o ID do PROPRIO filho no caminho, mas o ID da ficha do filho do B
+        // Pai A usa o ID do PROPRIO filho no caminho, mas o ID da informacao do filho do B
         ResponseEntity<Map<String, Object>> response = client.get()
-                .uri(fichasPath(familiaA.alunoId()) + "/" + fichaDoB)
+                .uri(rotaInformacoes(familiaA.alunoId()) + "/" + informacaoDoB)
                 .header(HttpHeaders.AUTHORIZATION, bearer(familiaA.token()))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody()).containsEntry("codigo", "FICHA_SAUDE_NAO_ENCONTRADA");
+        assertThat(response.getBody()).containsEntry("codigo", "INFORMACAO_RELEVANTE_NAO_ENCONTRADA");
     }
 
-    // ---------- PUT /api/alunos/{alunoId}/fichas-saude/{fichaId} ----------
+    // ---------- PUT /api/alunos/{alunoId}/informacoes-relevantes/{informacaoId} ----------
 
     @Test
     void atualizar_comVersaoAtual_deveRetornar200EGravarDadosNovosComVersaoIncrementada() {
         long ts = System.nanoTime();
         Familia familia = criarFamilia();
-        UUID fichaId = criarFicha(familia, "Nome antigo " + ts, "Observacao antiga");
-        AtualizarFichaSaudeRequest request =
-                new AtualizarFichaSaudeRequest("Nome novo " + ts, "Observacao nova", 0L);
+        UUID informacaoId = criarInformacao(familia, "Nome antigo " + ts, "Observacao antiga");
+        AtualizarInformacaoRelevanteRequest request =
+                new AtualizarInformacaoRelevanteRequest("Nome novo " + ts, "Observacao nova", 0L);
 
-        ResponseEntity<FichaSaudeResponse> response = client.put().uri(fichasPath(familia.alunoId()) + "/" + fichaId)
+        ResponseEntity<InformacaoRelevanteResponse> response = client.put().uri(rotaInformacoes(familia.alunoId()) + "/" + informacaoId)
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
-                .toEntity(FichaSaudeResponse.class);
+                .toEntity(InformacaoRelevanteResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().id()).isEqualTo(fichaId);
+        assertThat(response.getBody().id()).isEqualTo(informacaoId);
         assertThat(response.getBody().nome()).isEqualTo("Nome novo " + ts);
         assertThat(response.getBody().observacoes()).isEqualTo("Observacao nova");
         // A propria resposta do PUT ja traz a versao nova (pronta para a proxima edicao)
         assertThat(response.getBody().versao()).isEqualTo(1L);
 
         // Efeito observavel: nova consulta traz os dados novos e a versao incrementada
-        FichaSaudeResponse depois = client.get().uri(fichasPath(familia.alunoId()) + "/" + fichaId)
+        InformacaoRelevanteResponse depois = client.get().uri(rotaInformacoes(familia.alunoId()) + "/" + informacaoId)
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .retrieve()
-                .body(FichaSaudeResponse.class);
+                .body(InformacaoRelevanteResponse.class);
         assertThat(depois.nome()).isEqualTo("Nome novo " + ts);
         assertThat(depois.observacoes()).isEqualTo("Observacao nova");
         assertThat(depois.versao()).isEqualTo(1L);
-        assertThat(fichaSaudeRepository.findById(fichaId))
+        assertThat(informacaoRelevanteRepository.findById(informacaoId))
                 .get()
-                .extracting(FichaSaude::getNome)
+                .extracting(InformacaoRelevante::getNome)
                 .isEqualTo("Nome novo " + ts);
     }
 
@@ -436,11 +436,11 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
     void atualizar_comVersaoDesatualizada_deveRetornar409EManterDadosAntigos() {
         long ts = System.nanoTime();
         Familia familia = criarFamilia();
-        UUID fichaId = criarFicha(familia, "Versao inicial " + ts, null);
-        AtualizarFichaSaudeRequest request =
-                new AtualizarFichaSaudeRequest("Edicao concorrente " + ts, null, 7L);
+        UUID informacaoId = criarInformacao(familia, "Versao inicial " + ts, null);
+        AtualizarInformacaoRelevanteRequest request =
+                new AtualizarInformacaoRelevanteRequest("Edicao concorrente " + ts, null, 7L);
 
-        ResponseEntity<Map<String, Object>> response = client.put().uri(fichasPath(familia.alunoId()) + "/" + fichaId)
+        ResponseEntity<Map<String, Object>> response = client.put().uri(rotaInformacoes(familia.alunoId()) + "/" + informacaoId)
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
@@ -451,21 +451,21 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         assertThat(response.getBody()).containsEntry("codigo", "CONFLITO_VERSAO");
         assertThat(response.getBody().get("mensagem"))
                 .isEqualTo("Cadastro alterado por outra pessoa. Recarregue os dados.");
-        assertThat(fichaSaudeRepository.findById(fichaId))
+        assertThat(informacaoRelevanteRepository.findById(informacaoId))
                 .get()
-                .extracting(FichaSaude::getNome)
+                .extracting(InformacaoRelevante::getNome)
                 .isEqualTo("Versao inicial " + ts);
     }
 
     @Test
     void atualizar_semVersao_deveRetornar400ComCampoVersao() {
         Familia familia = criarFamilia();
-        UUID fichaId = criarFicha(familia, "Sem versao " + System.nanoTime(), null);
+        UUID informacaoId = criarInformacao(familia, "Sem versao " + System.nanoTime(), null);
 
-        ResponseEntity<Map<String, Object>> response = client.put().uri(fichasPath(familia.alunoId()) + "/" + fichaId)
+        ResponseEntity<Map<String, Object>> response = client.put().uri(rotaInformacoes(familia.alunoId()) + "/" + informacaoId)
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new AtualizarFichaSaudeRequest("Nome qualquer", null, null))
+                .body(new AtualizarInformacaoRelevanteRequest("Nome qualquer", null, null))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
@@ -478,31 +478,31 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
     void atualizar_comoDirecao_deveRetornar403EManterDados() {
         long ts = System.nanoTime();
         Familia familia = criarFamilia();
-        UUID fichaId = criarFicha(familia, "Original " + ts, null);
+        UUID informacaoId = criarInformacao(familia, "Original " + ts, null);
 
-        ResponseEntity<Map<String, Object>> response = client.put().uri(fichasPath(familia.alunoId()) + "/" + fichaId)
+        ResponseEntity<Map<String, Object>> response = client.put().uri(rotaInformacoes(familia.alunoId()) + "/" + informacaoId)
                 .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new AtualizarFichaSaudeRequest("Alterado pela direcao", null, 0L))
+                .body(new AtualizarInformacaoRelevanteRequest("Alterado pela direcao", null, 0L))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(response.getBody()).containsEntry("codigo", "ACESSO_NEGADO");
-        assertThat(fichaSaudeRepository.findById(fichaId))
+        assertThat(informacaoRelevanteRepository.findById(informacaoId))
                 .get()
-                .extracting(FichaSaude::getNome)
+                .extracting(InformacaoRelevante::getNome)
                 .isEqualTo("Original " + ts);
     }
 
-    // ---------- DELETE /api/alunos/{alunoId}/fichas-saude/{fichaId} ----------
+    // ---------- DELETE /api/alunos/{alunoId}/informacoes-relevantes/{informacaoId} ----------
 
     @Test
-    void excluir_comFichaExistente_deveRetornar204EFichaDeixaDeExistir() {
+    void excluir_comInformacaoExistente_deveRetornar204EInformacaoDeixaDeExistir() {
         Familia familia = criarFamilia();
-        UUID fichaId = criarFicha(familia, "Para excluir " + System.nanoTime(), "Temporaria");
+        UUID informacaoId = criarInformacao(familia, "Para excluir " + System.nanoTime(), "Temporaria");
 
-        ResponseEntity<Void> response = client.delete().uri(fichasPath(familia.alunoId()) + "/" + fichaId)
+        ResponseEntity<Void> response = client.delete().uri(rotaInformacoes(familia.alunoId()) + "/" + informacaoId)
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .retrieve()
                 .toBodilessEntity();
@@ -510,44 +510,44 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
         // Efeito observavel: GET seguinte retorna 404 e o registro sumiu do banco
-        ResponseEntity<Void> busca = client.get().uri(fichasPath(familia.alunoId()) + "/" + fichaId)
+        ResponseEntity<Void> busca = client.get().uri(rotaInformacoes(familia.alunoId()) + "/" + informacaoId)
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .retrieve()
                 .toBodilessEntity();
         assertThat(busca.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(fichaSaudeRepository.existsById(fichaId)).isFalse();
+        assertThat(informacaoRelevanteRepository.existsById(informacaoId)).isFalse();
     }
 
     @Test
-    void excluir_comFichaInexistente_deveRetornar404ComMensagem() {
+    void excluir_comInformacaoInexistente_deveRetornar404ComMensagem() {
         Familia familia = criarFamilia();
 
         ResponseEntity<Map<String, Object>> response = client.delete()
-                .uri(fichasPath(familia.alunoId()) + "/" + UUID.randomUUID())
+                .uri(rotaInformacoes(familia.alunoId()) + "/" + UUID.randomUUID())
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody()).containsEntry("codigo", "FICHA_SAUDE_NAO_ENCONTRADA");
-        assertThat(response.getBody().get("mensagem")).isEqualTo("Ficha de saúde não encontrada.");
+        assertThat(response.getBody()).containsEntry("codigo", "INFORMACAO_RELEVANTE_NAO_ENCONTRADA");
+        assertThat(response.getBody().get("mensagem")).isEqualTo("Informação relevante não encontrada.");
     }
 
     @Test
-    void excluir_fichaDoFilhoDeOutroResponsavel_deveRetornar404EManterFicha() {
+    void excluir_informacaoDoFilhoDeOutroResponsavel_deveRetornar404EManterInformacao() {
         Familia familiaA = criarFamilia();
         Familia familiaB = criarFamilia();
-        UUID fichaDoB = criarFicha(familiaB, "Ficha do B " + System.nanoTime(), null);
+        UUID informacaoDoB = criarInformacao(familiaB, "Ficha do B " + System.nanoTime(), null);
 
         ResponseEntity<Map<String, Object>> response = client.delete()
-                .uri(fichasPath(familiaB.alunoId()) + "/" + fichaDoB)
+                .uri(rotaInformacoes(familiaB.alunoId()) + "/" + informacaoDoB)
                 .header(HttpHeaders.AUTHORIZATION, bearer(familiaA.token()))
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).containsEntry("codigo", "ALUNO_NAO_ENCONTRADO");
-        assertThat(fichaSaudeRepository.existsById(fichaDoB)).isTrue();
+        assertThat(informacaoRelevanteRepository.existsById(informacaoDoB)).isTrue();
     }
 
     // ---------- Helpers (montam o cenario pelos endpoints reais) ----------
@@ -571,8 +571,8 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         return new Familia(autenticar(pai), alunoId);
     }
 
-    private String fichasPath(UUID alunoId) {
-        return "/api/alunos/" + alunoId + "/fichas-saude";
+    private String rotaInformacoes(UUID alunoId) {
+        return "/api/alunos/" + alunoId + "/informacoes-relevantes";
     }
 
     /** Grava o aluno direto no banco: o cadastro direto saiu da API (o aluno nasce no convite do responsável). */
@@ -584,12 +584,12 @@ class FichaSaudeControllerIntegrationTest extends IntegracaoTestBase {
         return alunoRepository.saveAndFlush(aluno).getId();
     }
 
-    /** Cria uma ficha pelo endpoint real (como o RESPONSAVEL do aluno) e devolve o id do header Location. */
-    private UUID criarFicha(Familia familia, String nome, String observacoes) {
-        ResponseEntity<Void> response = client.post().uri(fichasPath(familia.alunoId()))
+    /** Cria uma informacao pelo endpoint real (como o RESPONSAVEL do aluno) e devolve o id do header Location. */
+    private UUID criarInformacao(Familia familia, String nome, String observacoes) {
+        ResponseEntity<Void> response = client.post().uri(rotaInformacoes(familia.alunoId()))
                 .header(HttpHeaders.AUTHORIZATION, bearer(familia.token()))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new FichaSaudeRequest(nome, observacoes))
+                .body(new InformacaoRelevanteRequest(nome, observacoes))
                 .retrieve()
                 .toBodilessEntity();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);

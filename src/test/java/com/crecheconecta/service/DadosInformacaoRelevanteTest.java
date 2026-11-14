@@ -1,7 +1,7 @@
 package com.crecheconecta.service;
 
 import com.crecheconecta.exception.RegraNegocioException;
-import com.crecheconecta.model.DadosFichaSaude;
+import com.crecheconecta.model.DadosInformacaoRelevante;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -9,11 +9,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class DadosFichaSaudeTest {
+class DadosInformacaoRelevanteTest {
 
     @Test
     void deveNormalizarNomeEObservacoes() {
-        var dados = new DadosFichaSaude(
+        var dados = new DadosInformacaoRelevante(
                 " Ficha ",
                 " Observação "
         );
@@ -24,7 +24,7 @@ class DadosFichaSaudeTest {
 
     @Test
     void deveTransformarObservacoesEmBrancoEmNulo() {
-        var dados = new DadosFichaSaude("Ficha", "   ");
+        var dados = new DadosInformacaoRelevante("Ficha", "   ");
 
         assertNull(dados.observacoes());
     }
@@ -35,7 +35,7 @@ class DadosFichaSaudeTest {
     void deveRejeitarNomeInvalido(String nome) {
         assertThrows(
                 RegraNegocioException.class,
-                () -> new DadosFichaSaude(nome, null)
+                () -> new DadosInformacaoRelevante(nome, null)
         );
     }
 
@@ -43,7 +43,7 @@ class DadosFichaSaudeTest {
     void deveRejeitarNomeAcimaDoLimite() {
         assertThrows(
                 RegraNegocioException.class,
-                () -> new DadosFichaSaude(
+                () -> new DadosInformacaoRelevante(
                         "A".repeat(121),
                         null
                 )
@@ -54,7 +54,7 @@ class DadosFichaSaudeTest {
     void deveRejeitarObservacoesAcimaDoLimite() {
         assertThrows(
                 RegraNegocioException.class,
-                () -> new DadosFichaSaude(
+                () -> new DadosInformacaoRelevante(
                         "Ficha",
                         "A".repeat(5001)
                 )

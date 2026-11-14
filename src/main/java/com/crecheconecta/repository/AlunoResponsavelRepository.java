@@ -22,4 +22,7 @@ public interface AlunoResponsavelRepository extends JpaRepository<AlunoResponsav
 
     // Features dos pais: "este responsável tem vínculo atual com este aluno?" (anti-IDOR).
     boolean existsByAlunoIdAndResponsavelIdAndEncerradoEmIsNull(UUID alunoId, UUID responsavelId);
+
+    // Anonimização (LGPD): todos os vínculos do aluno, atuais e encerrados.
+    List<AlunoResponsavel> findByAlunoId(UUID alunoId);
 }

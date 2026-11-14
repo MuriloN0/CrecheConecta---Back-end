@@ -7,10 +7,14 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface ConviteCadastroRepository extends JpaRepository<ConviteCadastro, UUID> {
+
+    // Anonimização (LGPD): o convite guarda nome e e-mail do responsável em texto.
+    List<ConviteCadastro> findByEmail(String email);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE) @Query(
             """
