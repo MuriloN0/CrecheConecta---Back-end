@@ -1,10 +1,14 @@
 package com.crecheconecta.controller;
 
 import com.crecheconecta.dto.*;
+import com.crecheconecta.entity.AceiteTermo;
 import com.crecheconecta.entity.Aluno;
 import com.crecheconecta.entity.Perfil;
+import com.crecheconecta.entity.StatusTermo;
 import com.crecheconecta.entity.Usuario;
+import com.crecheconecta.repository.AceiteTermoRepository;
 import com.crecheconecta.repository.AlunoRepository;
+import com.crecheconecta.repository.TermoVersaoRepository;
 import com.crecheconecta.repository.UsuarioRepository;
 import com.crecheconecta.service.EmailService;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -52,6 +56,12 @@ abstract class BaseControllerIntegrationTest {
     private AlunoRepository alunos;
 
     @Autowired
+    private TermoVersaoRepository termosVersoes;
+
+    @Autowired
+    private AceiteTermoRepository aceitesTermo;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @MockitoBean
@@ -88,7 +98,26 @@ abstract class BaseControllerIntegrationTest {
         tokenDirecao = autenticar(diretor);
     }
 
+    /**
+     * Cria um usuário ativo. O RESPONSAVEL já nasce com o aceite da versão vigente dos termos,
+     * como acontece no cadastro real; sem isso as rotas dos pais respondem 403 TERMO_PENDENTE.
+     */
     protected Usuario criarUsuario(Perfil perfil) {
+        Usuario usuario = salvarUsuario(perfil);
+
+        if (perfil == Perfil.RESPONSAVEL) {
+            aceitarTermoVigente(usuario);
+        }
+
+        return usuario;
+    }
+
+    /** Responsável que ainda não aceitou a versão vigente (para testar o aceite obrigatório). */
+    protected Usuario criarResponsavelSemAceite() {
+        return salvarUsuario(Perfil.RESPONSAVEL);
+    }
+
+    private Usuario salvarUsuario(Perfil perfil) {
         var usuario = new Usuario();
 
         usuario.setNome("Usuário de integração");
@@ -98,6 +127,16 @@ abstract class BaseControllerIntegrationTest {
         usuario.setAtivo(true);
 
         return usuarios.saveAndFlush(usuario);
+    }
+
+    // O H2 não roda a migration que cria a versão inicial: se não houver vigente, não há o que aceitar.
+    private void aceitarTermoVigente(Usuario usuario) {
+        termosVersoes.findByStatus(StatusTermo.VIGENTE).ifPresent(vigente -> {
+            var aceite = new AceiteTermo();
+            aceite.setUsuarioId(usuario.getId());
+            aceite.setVersaoTermo(vigente.getIdentificador());
+            aceitesTermo.saveAndFlush(aceite);
+        });
     }
 
     protected String autenticar(Usuario usuario) {

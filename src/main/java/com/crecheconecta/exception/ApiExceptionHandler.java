@@ -73,6 +73,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    @ExceptionHandler(TermoPendenteException.class)
+    public ResponseEntity<ProblemDetail> tratarTermoPendente(
+            TermoPendenteException exception
+    ) {
+        registrarAuditoria("ERRO_TERMO_PENDENTE");
+
+        return resposta(
+                HttpStatus.FORBIDDEN,
+                "TERMO_PENDENTE",
+                exception.getMessage()
+        );
+    }
+
     @ExceptionHandler(RegraNegocioException.class)
     public ResponseEntity<ProblemDetail> tratarRegraNegocio(
             RegraNegocioException exception

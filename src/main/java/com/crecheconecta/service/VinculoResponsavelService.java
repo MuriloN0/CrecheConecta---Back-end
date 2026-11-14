@@ -4,6 +4,7 @@ import com.crecheconecta.entity.Aluno;
 import com.crecheconecta.entity.MatriculaTurma;
 import com.crecheconecta.entity.Perfil;
 import com.crecheconecta.exception.AlunoNaoEncontradoException;
+import com.crecheconecta.exception.TermoPendenteException;
 import com.crecheconecta.repository.AlunoRepository;
 import com.crecheconecta.repository.AlunoResponsavelRepository;
 import com.crecheconecta.repository.MatriculaTurmaRepository;
@@ -18,7 +19,8 @@ import java.util.UUID;
 
 /**
  * "Porteiro" das features dos pais.
- * Confere se quem está logado é um RESPONSAVEL ativo e se o aluno pedido é filho dele.
+ * Confere se quem está logado é um RESPONSAVEL ativo, que aceitou a versão vigente dos termos (LGPD),
+ * e se o aluno pedido é filho dele.
  * Propositalmente SEM @PreAuthorize("hasRole('DIRECAO')"): é usado pelos services dos pais.
  */
 @Service
@@ -28,17 +30,21 @@ public class VinculoResponsavelService {
     private final AlunoRepository alunos;
     private final MatriculaTurmaRepository matriculas;
     private final UsuarioRepository usuarios;
+    private final TermoService termos;
 
-    public VinculoResponsavelService(AlunoResponsavelRepository vinculos, AlunoRepository alunos, MatriculaTurmaRepository matriculas, UsuarioRepository usuarios) {
+    public VinculoResponsavelService(AlunoResponsavelRepository vinculos, AlunoRepository alunos, MatriculaTurmaRepository matriculas, UsuarioRepository usuarios, TermoService termos) {
         this.vinculos = vinculos;
         this.alunos = alunos;
         this.matriculas = matriculas;
         this.usuarios = usuarios;
+        this.termos = termos;
     }
 
     /**
-     * Garante que o solicitante é um responsável ativo (perfil no token + re-checagem no banco).
-     * Falha -> 403.
+     * Garante que o solicitante é um responsável ativo (perfil no token + re-checagem no banco)
+     * e que já aceitou a versão vigente dos termos.
+     * Falha -> 403 (ACESSO_NEGADO ou TERMO_PENDENTE).
+     * As rotas do próprio termo (/api/termo/status e /api/termo/aceite) não passam por aqui.
      */
     @Transactional(readOnly = true)
     public void exigirResponsavelAtivo(UsuarioAtual solicitante) {
@@ -50,6 +56,10 @@ public class VinculoResponsavelService {
 
         if (!responsavel.isAtivo() || responsavel.getPerfil() != Perfil.RESPONSAVEL) {
             throw acessoNegado();
+        }
+
+        if (termos.possuiAceitePendente(responsavel.getId())) {
+            throw new TermoPendenteException();
         }
     }
 
