@@ -230,7 +230,7 @@ class TermoVersaoControllerIntegrationTest extends BaseControllerIntegrationTest
     void novaVersaoPublicada_deveExigirNovoAceiteDeTodos() {
 
         // Arrange
-        String tokenPai = autenticar(criarUsuario(Perfil.RESPONSAVEL));
+        String tokenPai = autenticar(criarResponsavelSemAceite());
 
         // Act + Assert 1: ainda não aceitou nada, vê a versão vigente
         var antes = chamar(HttpMethod.GET, "/api/termo/status", tokenPai, null, TermoStatusResponse.class);
