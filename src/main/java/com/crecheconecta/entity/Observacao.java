@@ -18,6 +18,10 @@ public class Observacao {
     @Column(name = "aluno_id", nullable = false)
     private UUID alunoId;
 
+    /** Professor que registrou a observação. Só ele edita ou exclui. */
+    @Column(name = "autor_id", nullable = false)
+    private UUID autorId;
+
     @Column(nullable = false, length = 120)
     private String titulo;
     
