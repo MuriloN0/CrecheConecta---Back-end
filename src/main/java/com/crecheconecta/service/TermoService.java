@@ -4,6 +4,7 @@ import com.crecheconecta.dto.TermoStatusResponse;
 import com.crecheconecta.entity.AceiteTermo;
 import com.crecheconecta.entity.StatusTermo;
 import com.crecheconecta.entity.TermoVersao;
+import com.crecheconecta.exception.ConflitoVersaoException;
 import com.crecheconecta.exception.RegraNegocioException;
 import com.crecheconecta.repository.AceiteTermoRepository;
 import com.crecheconecta.repository.TermoVersaoRepository;
@@ -31,8 +32,8 @@ public class TermoService {
     @Transactional(readOnly = true)
     public TermoStatusResponse status(UUID usuarioId) {
 
-        TermoVersao vigente = vigente();
-        return new TermoStatusResponse(precisaAceitar(usuarioId, vigente), vigente.getIdentificador(), vigente.getTermoUso(), vigente.getPoliticaPrivacidade());
+        var termo = vigente();
+        return new TermoStatusResponse(precisaAceitar(usuarioId, termo), termo.getIdentificador(), termo.getTermoUso(), termo.getPoliticaPrivacidade());
     }
 
     @Transactional(readOnly = true)
@@ -42,23 +43,31 @@ public class TermoService {
     }
 
     public void registrarAceite(UUID usuarioId) {
-        AceiteTermo aceite = new AceiteTermo();
+
+        var aceite = new AceiteTermo();
         aceite.setUsuarioId(usuarioId);
         aceite.setVersaoTermo(vigente().getIdentificador());
         aceites.save(aceite);
         auditoria.aposCommit("TERMO_ACEITO", usuarioId, null);
     }
 
+    public void registrarAceite(UUID usuarioId, String versao) {
+
+        var termo = termos.buscarPorStatusComBloqueio(StatusTermo.VIGENTE).orElseThrow(ConflitoVersaoException::new);
+
+        if (!termo.getIdentificador().equals(versao)) {
+            throw new ConflitoVersaoException();
+        }
+
+        if (precisaAceitar(usuarioId, termo)) {
+            registrarAceite(usuarioId);
+        }
+    }
+
     @Transactional(readOnly = true)
     public DocumentosCadastro documentosCadastro() {
-
         var termo = vigente();
-
-        return new DocumentosCadastro(
-                termo.getIdentificador(),
-                termo.getTermoUso(),
-                termo.getPoliticaPrivacidade()
-        );
+        return new DocumentosCadastro(termo.getIdentificador(), termo.getTermoUso(), termo.getPoliticaPrivacidade());
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -76,7 +85,6 @@ public class TermoService {
         aceite.setAlunoId(alunoId);
         aceite.setVersaoTermo(versao);
         aceites.save(aceite);
-
         auditoria.aposCommit("TERMO_ACEITO_NO_CADASTRO", usuarioId, alunoId);
     }
 
@@ -85,10 +93,10 @@ public class TermoService {
         return new RegraNegocioException("Os documentos foram atualizados. Clique em Atualizar documentos e confirme o novo aceite.");
     }
 
-    private boolean precisaAceitar(UUID usuarioId, TermoVersao vigente) {
+    private boolean precisaAceitar(UUID usuarioId, TermoVersao termo) {
 
         return aceites.findFirstByUsuarioIdOrderByDataAceiteDesc(usuarioId)
-                .map(aceite -> !aceite.getVersaoTermo().equals(vigente.getIdentificador()))
+                .map(aceite -> !aceite.getVersaoTermo().equals(termo.getIdentificador()))
                 .orElse(true);
     }
 

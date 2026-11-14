@@ -25,8 +25,13 @@ public class CadastroProfessorService {
     private final PasswordEncoder encoder;
     private final AuditoriaService auditoria;
 
-    public CadastroProfessorService(ConviteCadastroRepository convites, UsuarioRepository usuarios, TokenConviteService tokens, PasswordEncoder encoder, AuditoriaService auditoria) {
-
+    public CadastroProfessorService(
+            ConviteCadastroRepository convites,
+            UsuarioRepository usuarios,
+            TokenConviteService tokens,
+            PasswordEncoder encoder,
+            AuditoriaService auditoria
+    ) {
         this.convites = convites;
         this.usuarios = usuarios;
         this.tokens = tokens;
@@ -36,16 +41,17 @@ public class CadastroProfessorService {
 
     @Transactional
     public DadosConviteProfessor consultar(String token) {
-
         var convite = buscarDisponivel(token);
-
-        return new DadosConviteProfessor(convite.getNome(), convite.getEmail(), convite.getExpiraEm());
+        return new DadosConviteProfessor(
+                convite.getNome(),
+                convite.getEmail(),
+                convite.getExpiraEm()
+        );
     }
 
     @Transactional
     public CadastroProfessorResultado concluir(ConcluirCadastroProfessorRequest request) {
         var convite = buscarDisponivel(request.token());
-
         String nome = request.nome().strip();
 
         if (nome.isBlank()) {
@@ -65,17 +71,13 @@ public class CadastroProfessorService {
         professor.setEmail(convite.getEmail());
         professor.setTelefone(request.telefone());
         professor.setPerfil(Perfil.PROFESSOR);
-        professor.setSenhaHash(
-                encoder.encode(request.senha())
-        );
-
-        professor.setSituacaoCadastro(SituacaoCadastro.PENDENTE_APROVACAO);
-        professor.setAtivo(false);
+        professor.setSenhaHash(encoder.encode(request.senha()));
+        professor.setSituacaoCadastro(SituacaoCadastro.APROVADO);
+        professor.setAtivo(true);
 
         usuarios.saveAndFlush(professor);
 
         Instant agora = Instant.now();
-
         if (!convite.estaDisponivel(agora)) {
             throw conviteInvalido();
         }
@@ -85,7 +87,10 @@ public class CadastroProfessorService {
 
         auditoria.aposCommit("PROFESSOR_CADASTRO_CONCLUIDO", professor.getId(), professor.getId());
 
-        return new CadastroProfessorResultado(professor.getId(), "Cadastro concluído. Aguarde a aprovação da direção.");
+        return new CadastroProfessorResultado(
+                professor.getId(),
+                "Cadastro concluído. Você já pode entrar."
+        );
     }
 
     private ConviteCadastro buscarDisponivel(String token) {
@@ -93,9 +98,7 @@ public class CadastroProfessorService {
             throw conviteInvalido();
         }
 
-        String hash = tokens.calcularHash(token);
-
-        var convite = convites.buscarPorTokenHashComBloqueio(hash)
+        var convite = convites.buscarPorTokenHashComBloqueio(tokens.calcularHash(token))
                 .orElseThrow(this::conviteInvalido);
 
         if (convite.getPerfil() != Perfil.PROFESSOR || !convite.estaDisponivel(Instant.now())) {
@@ -106,15 +109,10 @@ public class CadastroProfessorService {
     }
 
     private RegraNegocioException conviteInvalido() {
-
-        return new RegraNegocioException(
-                "Convite inválido, expirado, cancelado ou já utilizado."
-        );
+        return new RegraNegocioException("Convite inválido, expirado, cancelado ou já utilizado.");
     }
 
-    public record DadosConviteProfessor(String nome, String email, Instant expiraEm) {
-    }
+    public record DadosConviteProfessor(String nome, String email, Instant expiraEm) {}
 
-    public record CadastroProfessorResultado(UUID usuarioId, String mensagem) {
-    }
+    public record CadastroProfessorResultado(UUID usuarioId, String mensagem) {}
 }
