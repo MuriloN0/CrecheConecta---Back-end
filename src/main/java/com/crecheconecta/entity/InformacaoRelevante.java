@@ -6,11 +6,11 @@ import java.util.UUID;
 import lombok.*;
 
 @Entity
-@Table(name = "fichas_saude")
+@Table(name = "informacoes_relevantes")
 @Getter
 @Setter
 @NoArgsConstructor
-public class FichaSaude {
+public class InformacaoRelevante {
 
     @Id private UUID id = UUID.randomUUID();
 

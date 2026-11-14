@@ -1,15 +1,15 @@
 package com.crecheconecta.service;
 
-import com.crecheconecta.dto.FichaSaudeResponse;
-import com.crecheconecta.dto.FichaSaudeResumoResponse;
-import com.crecheconecta.entity.FichaSaude;
+import com.crecheconecta.dto.InformacaoRelevanteResponse;
+import com.crecheconecta.dto.InformacaoRelevanteResumoResponse;
+import com.crecheconecta.entity.InformacaoRelevante;
 import com.crecheconecta.entity.Perfil;
 import com.crecheconecta.exception.AlunoNaoEncontradoException;
 import com.crecheconecta.exception.ConflitoVersaoException;
-import com.crecheconecta.exception.FichaSaudeNaoEncontradaException;
-import com.crecheconecta.model.DadosFichaSaude;
+import com.crecheconecta.exception.InformacaoRelevanteNaoEncontradaException;
+import com.crecheconecta.model.DadosInformacaoRelevante;
 import com.crecheconecta.repository.AlunoRepository;
-import com.crecheconecta.repository.FichaSaudeRepository;
+import com.crecheconecta.repository.InformacaoRelevanteRepository;
 import com.crecheconecta.repository.TurmaProfessorRepository;
 import com.crecheconecta.repository.UsuarioRepository;
 import com.crecheconecta.security.UsuarioAtual;
@@ -24,14 +24,14 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Informações Relevantes (ficha de saúde).
+ * Informações Relevantes (alergias, medicamentos e outros cuidados).
  * Regra: o RESPONSAVEL do aluno escreve e lê; a DIRECAO lê de todos;
  * o PROFESSOR lê só de alunos matriculados numa turma em que ele leciona.
  */
 @Service
-public class FichaSaudeService {
+public class InformacaoRelevanteService {
 
-    private final FichaSaudeRepository fichas;
+    private final InformacaoRelevanteRepository informacoes;
     private final VinculoResponsavelService acessoResponsavel;
     private final AlunoRepository alunos;
     private final UsuarioRepository usuarios;
@@ -40,8 +40,8 @@ public class FichaSaudeService {
     private final AuditoriaService auditoria;
     private final Clock clock;
 
-    public FichaSaudeService(FichaSaudeRepository fichas, VinculoResponsavelService acessoResponsavel, AlunoRepository alunos, UsuarioRepository usuarios, TurmaProfessorRepository turmasProfessores, CriptografiaService cripto, AuditoriaService auditoria, Clock clock) {
-        this.fichas = fichas;
+    public InformacaoRelevanteService(InformacaoRelevanteRepository informacoes, VinculoResponsavelService acessoResponsavel, AlunoRepository alunos, UsuarioRepository usuarios, TurmaProfessorRepository turmasProfessores, CriptografiaService cripto, AuditoriaService auditoria, Clock clock) {
+        this.informacoes = informacoes;
         this.acessoResponsavel = acessoResponsavel;
         this.alunos = alunos;
         this.usuarios = usuarios;
@@ -54,72 +54,72 @@ public class FichaSaudeService {
     // ---------- ESCRITA: só o responsável do aluno ----------
 
     @Transactional
-    public UUID cadastrar(UUID alunoId, DadosFichaSaude dados, UsuarioAtual solicitante) {
+    public UUID cadastrar(UUID alunoId, DadosInformacaoRelevante dados, UsuarioAtual solicitante) {
         acessoResponsavel.exigirResponsavelDoAluno(solicitante, alunoId);
 
-        FichaSaude ficha = new FichaSaude();
-        ficha.setAlunoId(alunoId);
-        ficha.setNome(dados.nome());
-        ficha.setObservacoes(cripto.cifrar(dados.observacoes()));
+        InformacaoRelevante informacao = new InformacaoRelevante();
+        informacao.setAlunoId(alunoId);
+        informacao.setNome(dados.nome());
+        informacao.setObservacoes(cripto.cifrar(dados.observacoes()));
         Instant agora = clock.instant();
-        ficha.setDataCriacao(agora);
-        ficha.setDataAtualizacao(agora);
+        informacao.setDataCriacao(agora);
+        informacao.setDataAtualizacao(agora);
 
-        fichas.saveAndFlush(ficha);
-        auditoria.aposCommit("FICHA_CADASTRADA", solicitante.id(), ficha.getId());
-        return ficha.getId();
+        informacoes.saveAndFlush(informacao);
+        auditoria.aposCommit("INFORMACAO_RELEVANTE_CADASTRADA", solicitante.id(), informacao.getId());
+        return informacao.getId();
     }
 
     @Transactional
-    public FichaSaudeResponse atualizar(UUID alunoId, UUID fichaId, DadosFichaSaude dados, Long versao, UsuarioAtual solicitante) {
+    public InformacaoRelevanteResponse atualizar(UUID alunoId, UUID informacaoId, DadosInformacaoRelevante dados, Long versao, UsuarioAtual solicitante) {
         acessoResponsavel.exigirResponsavelDoAluno(solicitante, alunoId);
 
-        FichaSaude ficha = buscar(alunoId, fichaId);
-        validarVersao(ficha, versao);
+        InformacaoRelevante informacao = buscar(alunoId, informacaoId);
+        validarVersao(informacao, versao);
 
-        ficha.setNome(dados.nome());
-        ficha.setObservacoes(cripto.cifrar(dados.observacoes()));
-        ficha.setDataAtualizacao(clock.instant());
+        informacao.setNome(dados.nome());
+        informacao.setObservacoes(cripto.cifrar(dados.observacoes()));
+        informacao.setDataAtualizacao(clock.instant());
 
         // flush agora: o Hibernate incrementa o @Version e a resposta já sai com a versão nova.
-        fichas.saveAndFlush(ficha);
+        informacoes.saveAndFlush(informacao);
 
-        auditoria.aposCommit("FICHA_EDITADA", solicitante.id(), ficha.getId());
-        return FichaSaudeResponse.de(ficha, cripto.decifrar(ficha.getObservacoes()));
+        auditoria.aposCommit("INFORMACAO_RELEVANTE_EDITADA", solicitante.id(), informacao.getId());
+        return InformacaoRelevanteResponse.de(informacao, cripto.decifrar(informacao.getObservacoes()));
     }
 
     @Transactional
-    public void excluir(UUID alunoId, UUID fichaId, UsuarioAtual solicitante) {
+    public void excluir(UUID alunoId, UUID informacaoId, UsuarioAtual solicitante) {
         acessoResponsavel.exigirResponsavelDoAluno(solicitante, alunoId);
 
-        FichaSaude ficha = buscar(alunoId, fichaId);
-        fichas.delete(ficha);
-        fichas.flush();
+        InformacaoRelevante informacao = buscar(alunoId, informacaoId);
+        informacoes.delete(informacao);
+        informacoes.flush();
 
-        auditoria.aposCommit("FICHA_EXCLUIDA", solicitante.id(), fichaId);
+        auditoria.aposCommit("INFORMACAO_RELEVANTE_EXCLUIDA", solicitante.id(), informacaoId);
     }
 
     // ---------- LEITURA: responsável, direção ou professor da turma ----------
 
     @Transactional(readOnly = true)
-    public List<FichaSaudeResumoResponse> listar(UUID alunoId, UsuarioAtual solicitante) {
+    public List<InformacaoRelevanteResumoResponse> listar(UUID alunoId, UsuarioAtual solicitante) {
         exigirAcessoLeitura(solicitante, alunoId);
 
-        List<FichaSaudeResumoResponse> lista = fichas.findByAlunoId(alunoId).stream().map(FichaSaudeResumoResponse::de).toList();
+        List<InformacaoRelevanteResumoResponse> lista = informacoes.findByAlunoId(alunoId).stream().map(InformacaoRelevanteResumoResponse::de).toList();
 
-        auditoria.registrar("FICHAS_LISTADAS", solicitante.id(), alunoId);
+        auditoria.registrar("INFORMACOES_RELEVANTES_LISTADAS", solicitante.id(), alunoId);
         return lista;
     }
 
     @Transactional(readOnly = true)
-    public FichaSaudeResponse visualizar(UUID alunoId, UUID fichaId, UsuarioAtual solicitante) {
+    public InformacaoRelevanteResponse visualizar(UUID alunoId, UUID informacaoId, UsuarioAtual solicitante) {
         exigirAcessoLeitura(solicitante, alunoId);
 
-        FichaSaude ficha = buscar(alunoId, fichaId);
-        String observacoes = cripto.decifrar(ficha.getObservacoes());
+        InformacaoRelevante informacao = buscar(alunoId, informacaoId);
+        String observacoes = cripto.decifrar(informacao.getObservacoes());
 
-        auditoria.registrar("FICHA_CONSULTADA", solicitante.id(), fichaId);
-        return FichaSaudeResponse.de(ficha, observacoes);
+        auditoria.registrar("INFORMACAO_RELEVANTE_CONSULTADA", solicitante.id(), informacaoId);
+        return InformacaoRelevanteResponse.de(informacao, observacoes);
     }
 
     // ---------- regras de acesso ----------
@@ -162,13 +162,13 @@ public class FichaSaudeService {
         }
     }
 
-    // Anti-IDOR de 2º nível: a ficha precisa pertencer ao aluno da URL.
-    private FichaSaude buscar(UUID alunoId, UUID fichaId) {
-        return fichas.findById(fichaId).filter(ficha -> ficha.getAlunoId().equals(alunoId)).orElseThrow(FichaSaudeNaoEncontradaException::new);
+    // Anti-IDOR de 2º nível: a informação relevante precisa pertencer ao aluno da URL.
+    private InformacaoRelevante buscar(UUID alunoId, UUID informacaoId) {
+        return informacoes.findById(informacaoId).filter(informacao -> informacao.getAlunoId().equals(alunoId)).orElseThrow(InformacaoRelevanteNaoEncontradaException::new);
     }
 
-    private void validarVersao(FichaSaude ficha, Long versao) {
-        if (versao == null || !Objects.equals(ficha.getVersao(), versao)) {
+    private void validarVersao(InformacaoRelevante informacao, Long versao) {
+        if (versao == null || !Objects.equals(informacao.getVersao(), versao)) {
             throw new ConflitoVersaoException();
         }
     }

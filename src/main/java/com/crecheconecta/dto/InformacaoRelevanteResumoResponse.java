@@ -1,11 +1,11 @@
 package com.crecheconecta.dto;
 
-import com.crecheconecta.entity.FichaSaude;
+import com.crecheconecta.entity.InformacaoRelevante;
 import java.util.UUID;
 
-public record FichaSaudeResumoResponse(UUID id, String nome) {
+public record InformacaoRelevanteResumoResponse(UUID id, String nome) {
 
-    public static FichaSaudeResumoResponse de(FichaSaude ficha) {
-        return new FichaSaudeResumoResponse(ficha.getId(), ficha.getNome());
+    public static InformacaoRelevanteResumoResponse de(InformacaoRelevante informacao) {
+        return new InformacaoRelevanteResumoResponse(informacao.getId(), informacao.getNome());
     }
 }

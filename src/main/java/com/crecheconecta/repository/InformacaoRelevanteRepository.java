@@ -1,11 +1,11 @@
 package com.crecheconecta.repository;
 
-import com.crecheconecta.entity.FichaSaude;
+import com.crecheconecta.entity.InformacaoRelevante;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface FichaSaudeRepository extends JpaRepository<FichaSaude, UUID> {
+public interface InformacaoRelevanteRepository extends JpaRepository<InformacaoRelevante, UUID> {
     
-    List<FichaSaude> findByAlunoId(UUID alunoId);
+    List<InformacaoRelevante> findByAlunoId(UUID alunoId);
 }

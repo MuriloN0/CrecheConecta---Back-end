@@ -1,10 +1,10 @@
 package com.crecheconecta.dto;
 
-import com.crecheconecta.entity.FichaSaude;
+import com.crecheconecta.entity.InformacaoRelevante;
 import java.time.Instant;
 import java.util.UUID;
 
-public record FichaSaudeResponse(
+public record InformacaoRelevanteResponse(
         UUID id,
         UUID alunoId,
         String nome,
@@ -13,14 +13,14 @@ public record FichaSaudeResponse(
         Instant dataCriacao,
         Instant dataAtualizacao) {
 
-    public static FichaSaudeResponse de(FichaSaude ficha, String observacoesDecifradas) {
-        return new FichaSaudeResponse(
-                ficha.getId(),
-                ficha.getAlunoId(),
-                ficha.getNome(),
+    public static InformacaoRelevanteResponse de(InformacaoRelevante informacao, String observacoesDecifradas) {
+        return new InformacaoRelevanteResponse(
+                informacao.getId(),
+                informacao.getAlunoId(),
+                informacao.getNome(),
                 observacoesDecifradas,
-                ficha.getVersao(),
-                ficha.getDataCriacao(),
-                ficha.getDataAtualizacao());
+                informacao.getVersao(),
+                informacao.getDataCriacao(),
+                informacao.getDataAtualizacao());
     }
 }

@@ -1,7 +1,7 @@
 package com.crecheconecta.exception;
 
-public class FichaSaudeNaoEncontradaException extends RuntimeException {
-    public FichaSaudeNaoEncontradaException() {
-        super("Ficha de saúde não encontrada.");
+public class InformacaoRelevanteNaoEncontradaException extends RuntimeException {
+    public InformacaoRelevanteNaoEncontradaException() {
+        super("Informação relevante não encontrada.");
     }
 }
