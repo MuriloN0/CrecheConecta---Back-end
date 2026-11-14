@@ -17,6 +17,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/chat")
 public class ChatController {
+
     private final ChatService chat;
 
     public ChatController(ChatService chat) {
@@ -42,5 +43,7 @@ public class ChatController {
         return ResponseEntity.status(HttpStatus.CREATED).cacheControl(CacheControl.noStore()).body(chat.enviar(UsuarioAtual.de(usuario), contato, request.texto()));
     }
 
-    public record EnviarMensagem(@NotBlank @Size(max = 2000) String texto) {}
+    public record EnviarMensagem(@NotBlank@Size(max = 4000, message = "Escreva uma mensagem de até 4.000 caracteres.") String texto) {
+
+    }
 }

@@ -52,7 +52,12 @@ public class ChatService {
     private final CriptografiaService criptografia;
     private final AuditoriaRepository auditoria;
 
-    public ChatService(NamedParameterJdbcTemplate jdbc, TermoService termos, CriptografiaService criptografia, AuditoriaRepository auditoria) {
+    public ChatService(
+            NamedParameterJdbcTemplate jdbc,
+            TermoService termos,
+            CriptografiaService criptografia,
+            AuditoriaRepository auditoria
+    ) {
         this.jdbc = jdbc;
         this.termos = termos;
         this.criptografia = criptografia;
@@ -61,7 +66,6 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public PaginaContatos contatos(UsuarioAtual eu, String busca, int pagina, boolean somenteConversas) {
-
         validarAceite(eu);
 
         if (pagina < 0 || busca.length() > 100) {
@@ -88,8 +92,12 @@ public class ChatService {
             LIMIT :limite OFFSET :offset
             """, parametros, (rs, i) -> {
             var ultima = rs.getObject("ultima_mensagem_em", OffsetDateTime.class);
-            return new Contato(rs.getObject("id", UUID.class), rs.getString("nome"),
-                    Perfil.valueOf(rs.getString("perfil")), ultima == null ? null : ultima.toInstant());
+            return new Contato(
+                    rs.getObject("id", UUID.class),
+                    rs.getString("nome"),
+                    Perfil.valueOf(rs.getString("perfil")),
+                    ultima == null ? null : ultima.toInstant()
+            );
         });
 
         return new PaginaContatos(primeiros(registros), registros.size() > TAMANHO);
@@ -116,9 +124,11 @@ public class ChatService {
             ORDER BY m.ordem DESC
             LIMIT :limite
             """, parametros, (rs, i) -> new Linha(rs.getLong("ordem"), new Mensagem(
-                rs.getObject("id", UUID.class), rs.getObject("autor_id", UUID.class),
+                rs.getObject("id", UUID.class),
+                rs.getObject("autor_id", UUID.class),
                 criptografia.decifrar(rs.getString("texto_cifrado")),
-                rs.getObject("criada_em", OffsetDateTime.class).toInstant())));
+                rs.getObject("criada_em", OffsetDateTime.class).toInstant()
+        )));
 
         var pagina = primeiros(registros);
         var cursor = registros.size() > TAMANHO ? Long.toString(pagina.getLast().ordem()) : null;
@@ -128,8 +138,8 @@ public class ChatService {
     @Transactional
     public Mensagem enviar(UsuarioAtual eu, UUID contato, String texto) {
         validarAceite(eu);
-        if (texto == null || texto.isBlank() || texto.length() > 2000 || texto.indexOf(0) >= 0) {
-            throw new RegraNegocioException("Escreva uma mensagem de até 2.000 caracteres.");
+        if (texto == null || texto.isBlank() || texto.length() > 4000 || texto.indexOf(0) >= 0) {
+            throw new RegraNegocioException("Escreva uma mensagem de até 4.000 caracteres.");
         }
 
         validarContato(eu.id(), contato);
