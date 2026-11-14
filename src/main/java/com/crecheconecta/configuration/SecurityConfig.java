@@ -114,10 +114,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/fichas-saude/*").hasRole("RESPONSAVEL")
 
                         // Observacoes do filho: acesso dos pais (perfil RESPONSAVEL).
-                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*").hasRole("RESPONSAVEL")
-                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/observacoes").hasRole("RESPONSAVEL")
-                        .requestMatchers(HttpMethod.PUT, "/api/alunos/*/observacoes/*").hasRole("RESPONSAVEL")
-                        .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/observacoes/*").hasRole("RESPONSAVEL")
+                        .requestMatchers(HttpMethod.GET, "/api/alunos/*/observacoes", "/api/alunos/*/observacoes/*").hasAnyRole("RESPONSAVEL", "PROFESSOR", "DIRECAO")
+                        .requestMatchers(HttpMethod.POST, "/api/alunos/*/observacoes").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/alunos/*/observacoes/*").hasRole("PROFESSOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/alunos/*/observacoes/*").hasRole("PROFESSOR")
                         // Dados do filho (Perfil da Criança): só leitura, só pais (perfil RESPONSAVEL).
                         .requestMatchers(HttpMethod.GET, "/api/meus-filhos", "/api/meus-filhos/*").hasRole("RESPONSAVEL")
                         // Atividades para casa do filho: só leitura, só pais.

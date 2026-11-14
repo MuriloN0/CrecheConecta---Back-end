@@ -7,5 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ObservacaoRepository extends JpaRepository<Observacao, UUID> {
 
-    List<Observacao> findByAlunoId(UUID alunoId);
+    /** Mais recentes primeiro. */
+    List<Observacao> findByAlunoIdOrderByDataCriacaoDesc(UUID alunoId);
 }
