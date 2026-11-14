@@ -72,12 +72,12 @@ class TermoPendenteControllerIntegrationTest extends BaseControllerIntegrationTe
         // Act
         var lista = chamar(HttpMethod.GET, "/api/meus-filhos", familia.token(), null, ErroApi.class);
         var filho = chamar(HttpMethod.GET, "/api/meus-filhos/" + familia.alunoId(), familia.token(), null, ErroApi.class);
-        var fichas = chamar(HttpMethod.GET, ALUNOS + "/" + familia.alunoId() + "/fichas-saude", familia.token(), null, ErroApi.class);
+        var informacoes = chamar(HttpMethod.GET, ALUNOS + "/" + familia.alunoId() + "/informacoes-relevantes", familia.token(), null, ErroApi.class);
 
         // Assert
         verificarErro(lista, HttpStatus.FORBIDDEN, "TERMO_PENDENTE", MENSAGEM);
         verificarErro(filho, HttpStatus.FORBIDDEN, "TERMO_PENDENTE", MENSAGEM);
-        verificarErro(fichas, HttpStatus.FORBIDDEN, "TERMO_PENDENTE", MENSAGEM);
+        verificarErro(informacoes, HttpStatus.FORBIDDEN, "TERMO_PENDENTE", MENSAGEM);
     }
 
     @Test
