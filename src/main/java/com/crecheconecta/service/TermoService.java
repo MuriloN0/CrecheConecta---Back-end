@@ -4,18 +4,15 @@ import com.crecheconecta.dto.TermoStatusResponse;
 import com.crecheconecta.entity.AceiteTermo;
 import com.crecheconecta.entity.StatusTermo;
 import com.crecheconecta.entity.TermoVersao;
+import com.crecheconecta.exception.RegraNegocioException;
 import com.crecheconecta.repository.AceiteTermoRepository;
 import com.crecheconecta.repository.TermoVersaoRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-/**
- * Aceite dos termos pelo usuário. O texto e a versão vigente vêm do banco (tabela termos_versoes),
- * gerenciados pela direção em {@link TermoVersaoService}. Quando uma nova versão é publicada,
- * todos precisam aceitar de novo, porque o último aceite deixa de ser da versão vigente.
- */
 @Service
 @Transactional
 public class TermoService {
@@ -25,25 +22,22 @@ public class TermoService {
     private final AuditoriaService auditoria;
 
     public TermoService(AceiteTermoRepository aceites, TermoVersaoRepository termos, AuditoriaService auditoria) {
+
         this.aceites = aceites;
         this.termos = termos;
         this.auditoria = auditoria;
     }
 
-    /** Textos da versão vigente + se este usuário ainda precisa aceitá-la. */
     @Transactional(readOnly = true)
     public TermoStatusResponse status(UUID usuarioId) {
+
         TermoVersao vigente = vigente();
-        return new TermoStatusResponse(
-                precisaAceitar(usuarioId, vigente),
-                vigente.getIdentificador(),
-                vigente.getTermoUso(),
-                vigente.getPoliticaPrivacidade()
-        );
+        return new TermoStatusResponse(precisaAceitar(usuarioId, vigente), vigente.getIdentificador(), vigente.getTermoUso(), vigente.getPoliticaPrivacidade());
     }
 
     @Transactional(readOnly = true)
     public boolean precisaAceitar(UUID usuarioId) {
+
         return precisaAceitar(usuarioId, vigente());
     }
 
@@ -55,16 +49,53 @@ public class TermoService {
         auditoria.aposCommit("TERMO_ACEITO", usuarioId, null);
     }
 
+    @Transactional(readOnly = true)
+    public DocumentosCadastro documentosCadastro() {
+
+        var termo = vigente();
+
+        return new DocumentosCadastro(
+                termo.getIdentificador(),
+                termo.getTermoUso(),
+                termo.getPoliticaPrivacidade()
+        );
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void registrarAceiteCadastro(UUID usuarioId, UUID alunoId, String versao) {
+
+        var termo = termos.buscarPorStatusComBloqueio(StatusTermo.VIGENTE).orElseThrow(this::versaoAlterada);
+
+        if (!termo.getIdentificador().equals(versao)) {
+
+            throw versaoAlterada();
+        }
+
+        var aceite = new AceiteTermo();
+        aceite.setUsuarioId(usuarioId);
+        aceite.setAlunoId(alunoId);
+        aceite.setVersaoTermo(versao);
+        aceites.save(aceite);
+
+        auditoria.aposCommit("TERMO_ACEITO_NO_CADASTRO", usuarioId, alunoId);
+    }
+
+    private RegraNegocioException versaoAlterada() {
+
+        return new RegraNegocioException("Os documentos foram atualizados. Clique em Atualizar documentos e confirme o novo aceite.");
+    }
+
     private boolean precisaAceitar(UUID usuarioId, TermoVersao vigente) {
-        return aceites
-                .findFirstByUsuarioIdOrderByDataAceiteDesc(usuarioId)
+
+        return aceites.findFirstByUsuarioIdOrderByDataAceiteDesc(usuarioId)
                 .map(aceite -> !aceite.getVersaoTermo().equals(vigente.getIdentificador()))
                 .orElse(true);
     }
 
-    // A migration V29 cria a versão inicial e o banco impede apagar a vigente, então sempre existe uma.
     private TermoVersao vigente() {
-        return termos.findByStatus(StatusTermo.VIGENTE)
-                .orElseThrow(() -> new IllegalStateException("Não há versão vigente dos termos."));
+
+        return termos.findByStatus(StatusTermo.VIGENTE).orElseThrow(() -> new IllegalStateException("Não há versão vigente dos termos."));
     }
+
+    public record DocumentosCadastro(String versao, String termoUso, String politicaPrivacidade) {}
 }

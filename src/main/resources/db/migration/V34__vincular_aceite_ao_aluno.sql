@@ -1,0 +1,1 @@
+ALTER TABLE aceites_termo ADD COLUMN aluno_id UUID REFERENCES alunos(id);
