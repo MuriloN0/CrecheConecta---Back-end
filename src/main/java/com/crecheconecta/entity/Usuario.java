@@ -49,4 +49,8 @@ public class Usuario {
     @Enumerated(EnumType.STRING)
     @Column(name = "situacao_cadastro", nullable = false, length = 30)
     private SituacaoCadastro situacaoCadastro = SituacaoCadastro.APROVADO;
+
+    /** Preenchido quando os dados pessoais foram anonimizados (LGPD). */
+    @Column(name = "anonimizado_em")
+    private Instant anonimizadoEm;
 }

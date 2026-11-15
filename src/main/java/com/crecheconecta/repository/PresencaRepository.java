@@ -17,4 +17,7 @@ public interface PresencaRepository extends JpaRepository<Presenca, UUID> {
     // Registros de um aluno num intervalo de datas (ex.: um mês), do dia mais antigo para o mais novo.
     // Usado pelo portal dos pais.
     List<Presenca> findByAlunoIdAndDataBetweenOrderByDataAsc(UUID alunoId, LocalDate inicio, LocalDate fim);
+
+    // Exportação dos dados (LGPD): toda a frequência do aluno.
+    List<Presenca> findByAlunoIdOrderByDataAsc(UUID alunoId);
 }

@@ -4,9 +4,13 @@ import com.crecheconecta.dto.ConfirmarLoginRequest;
 import com.crecheconecta.dto.LoginRequest;
 import com.crecheconecta.dto.LoginResponse;
 import com.crecheconecta.dto.SessaoResponse;
+import com.crecheconecta.entity.AceiteTermo;
 import com.crecheconecta.entity.FinalidadeAcao;
 import com.crecheconecta.entity.Perfil;
+import com.crecheconecta.entity.StatusTermo;
 import com.crecheconecta.entity.Usuario;
+import com.crecheconecta.repository.AceiteTermoRepository;
+import com.crecheconecta.repository.TermoVersaoRepository;
 import com.crecheconecta.repository.UsuarioRepository;
 import com.crecheconecta.service.EmailService;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +45,12 @@ public abstract class IntegracaoTestBase {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private TermoVersaoRepository termosVersoes;
+
+    @Autowired
+    private AceiteTermoRepository aceitesTermo;
+
     @MockitoBean
     protected EmailService emailService;
 
@@ -66,7 +76,20 @@ public abstract class IntegracaoTestBase {
         usuario.setEmail(perfil.name().toLowerCase() + "." + ts + "@teste.local");
         usuario.setSenhaHash(hashSenhaPadrao);
         usuario.setPerfil(perfil);
-        return usuarioRepository.save(usuario);
+        Usuario salvo = usuarioRepository.save(usuario);
+
+        // O RESPONSAVEL nasce com o aceite da versão vigente, como no cadastro real
+        // (sem isso as rotas dos pais respondem 403 TERMO_PENDENTE). O H2 pode não ter vigente.
+        if (perfil == Perfil.RESPONSAVEL) {
+            termosVersoes.findByStatus(StatusTermo.VIGENTE).ifPresent(vigente -> {
+                var aceite = new AceiteTermo();
+                aceite.setUsuarioId(salvo.getId());
+                aceite.setVersaoTermo(vigente.getIdentificador());
+                aceitesTermo.save(aceite);
+            });
+        }
+
+        return salvo;
     }
 
     protected String autenticar(Usuario usuario) {

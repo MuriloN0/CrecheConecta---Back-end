@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -39,4 +40,8 @@ public class Aluno {
     @Version
     @Column(nullable = false)
     private Long versao;
+
+    /** Preenchido quando os dados pessoais foram anonimizados (LGPD). */
+    @Column(name = "anonimizado_em")
+    private Instant anonimizadoEm;
 }

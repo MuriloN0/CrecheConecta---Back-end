@@ -42,6 +42,18 @@ public class TermoService {
         return precisaAceitar(usuarioId, vigente());
     }
 
+    /**
+     * Usado pelo porteiro das rotas dos pais (VinculoResponsavelService).
+     * Sem versão vigente não há o que aceitar: em produção a V31 sempre cria uma; só o banco de testes pode não ter.
+     */
+    @Transactional(readOnly = true)
+    public boolean possuiAceitePendente(UUID usuarioId) {
+
+        return termos.findByStatus(StatusTermo.VIGENTE)
+                .map(vigente -> precisaAceitar(usuarioId, vigente))
+                .orElse(false);
+    }
+
     public void registrarAceite(UUID usuarioId) {
 
         var aceite = new AceiteTermo();

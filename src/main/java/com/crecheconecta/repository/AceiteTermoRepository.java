@@ -12,6 +12,9 @@ public interface AceiteTermoRepository extends JpaRepository<AceiteTermo, UUID> 
 
     Optional<AceiteTermo> findFirstByUsuarioIdOrderByDataAceiteDesc(UUID usuarioId);
 
+    // Exportação dos dados (LGPD): histórico de aceites do usuário.
+    List<AceiteTermo> findByUsuarioIdOrderByDataAceiteDesc(UUID usuarioId);
+
     // Quantos usuários diferentes aceitaram cada versão (Big Number de LGPD da direção).
     @Query("SELECT a.versaoTermo AS identificador, COUNT(DISTINCT a.usuarioId) AS total FROM AceiteTermo a GROUP BY a.versaoTermo")
     List<AceitesPorVersao> contarPorVersao();
