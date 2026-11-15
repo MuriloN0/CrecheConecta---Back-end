@@ -2,6 +2,8 @@ package com.crecheconecta.repository;
 
 import com.crecheconecta.entity.AtividadeEntity;
 import com.crecheconecta.model.TipoAtividade;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
@@ -19,4 +21,8 @@ public interface AtividadeRepository extends JpaRepository<AtividadeEntity, UUID
     List<AtividadeEntity> findByTurmaIdInOrderByDataCriacaoDescIdAsc(Collection<UUID> turmaIds);
 
     List<AtividadeEntity> findByTurmaIdInAndTipoOrderByDataCriacaoDescIdAsc(Collection<UUID> turmaIds, TipoAtividade tipo);
+
+    Page<AtividadeEntity> findByTurmaIdInOrderByDataCriacaoDescIdAsc(Collection<UUID> turmaIds, Pageable pageable);
+
+    Page<AtividadeEntity> findByTurmaIdInAndTipoOrderByDataCriacaoDescIdAsc(Collection<UUID> turmaIds, TipoAtividade tipo, Pageable pageable);
 }
