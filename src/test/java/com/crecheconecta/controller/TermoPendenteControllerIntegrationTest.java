@@ -92,7 +92,7 @@ class TermoPendenteControllerIntegrationTest extends BaseControllerIntegrationTe
         assertThat(status.getBody()).isNotNull();
         assertThat(status.getBody().precisaAceitar()).isTrue();
 
-        var aceite = chamar(HttpMethod.POST, "/api/termo/aceite", familia.token(), null, Void.class);
+        var aceite = chamar(HttpMethod.POST, "/api/termo/aceite", familia.token(), new TermoController.AceitarTermoRequest(status.getBody().versao()), Void.class);
         assertThat(aceite.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
         // Act + Assert 2: depois do aceite, os dados do filho voltam a abrir

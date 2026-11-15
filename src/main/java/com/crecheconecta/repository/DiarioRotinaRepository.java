@@ -17,7 +17,15 @@ public interface DiarioRotinaRepository extends JpaRepository<DiarioRotina, UUID
 
     List<DiarioRotina> findByTurmaIdAndData(UUID turmaId, LocalDate data);
 
-    List<DiarioRotina> findByTurmaIdAndDataAndAlunoIdIn(UUID turmaId, LocalDate data, List<UUID> alunos);
+    List<DiarioRotina> findByTurmaIdAndDataAndAlunoIdIn(
+            UUID turmaId, LocalDate data, List<UUID> alunos
+    );
 
     Optional<DiarioRotina> findFirstByAlunoIdOrderByDataDesc(UUID alunoId);
+
+    List<DiarioRotina> findByAlunoIdOrderByDataDesc(UUID alunoId);
+
+    @Modifying(flushAutomatically = true)
+    @Query("UPDATE DiarioRotina d SET d.observacaoProfessor = NULL WHERE d.alunoId = :alunoId")
+    int apagarObservacoesDoAluno(@Param("alunoId") UUID alunoId);
 }
