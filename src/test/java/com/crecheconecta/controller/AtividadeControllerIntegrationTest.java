@@ -3,10 +3,15 @@ package com.crecheconecta.controller;
 import com.crecheconecta.controller.base.IntegracaoTestBase;
 import com.crecheconecta.dto.AtividadeResponseDTO;
 import com.crecheconecta.dto.AtualizarAtividadeRequestDTO;
+import com.crecheconecta.dto.CadastrarTurmaRequest;
 import com.crecheconecta.dto.NovaAtividadeRequestDTO;
+import com.crecheconecta.dto.TurmaProfessorResponse;
+import com.crecheconecta.dto.TurmaResponse;
 import com.crecheconecta.dto.UsuarioLogadoResponse;
+import com.crecheconecta.dto.VincularProfessorTurmaRequest;
 import com.crecheconecta.entity.AtividadeEntity;
 import com.crecheconecta.entity.Perfil;
+import com.crecheconecta.entity.Usuario;
 import com.crecheconecta.model.TipoAtividade;
 import com.crecheconecta.repository.AtividadeRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +30,11 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Regra de acesso (AtividadeAcessoService): só o PROFESSOR cria, edita e exclui; a turma precisa ser
+ * uma em que ele leciona; e o professorId da atividade precisa ser o do próprio usuário logado.
+ * Por isso o cenário cria duas turmas reais (pela direção) e vincula o professor logado a elas.
+ */
 class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
 
     private static final String BASE_PATH = "/api/atividades";
@@ -33,17 +43,27 @@ class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
     private AtividadeRepository atividadeRepository;
 
     private String token;
+    private String tokenDirecao;
+    private UUID professorId;
+    private UUID turmaId;
+    private UUID outraTurmaId;
 
     @BeforeEach
-    void autenticarProfessor() {
-        token = autenticar(criarUsuario(Perfil.PROFESSOR));
+    void prepararProfessorETurmas() {
+        Usuario professor = criarUsuario(Perfil.PROFESSOR);
+        professorId = professor.getId();
+        token = autenticar(professor);
+        tokenDirecao = autenticar(criarUsuario(Perfil.DIRECAO));
+
+        turmaId = criarTurma();
+        outraTurmaId = criarTurma();
+        vincularProfessor(turmaId, professorId);
+        vincularProfessor(outraTurmaId, professorId);
     }
 
     @Test
     void criar_comDadosValidos_deveRetornar201() {
         long ts = System.nanoTime();
-        UUID turmaId = UUID.randomUUID();
-        UUID professorId = UUID.randomUUID();
         NovaAtividadeRequestDTO request = new NovaAtividadeRequestDTO(
                 professorId,
                 TipoAtividade.CASA,
@@ -77,7 +97,6 @@ class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
 
     @Test
     void criar_semTitulo_deveRetornar400() {
-        UUID turmaId = UUID.randomUUID();
         NovaAtividadeRequestDTO request = buildNovaAtividade(TipoAtividade.DIA, "   ", null);
 
         ResponseEntity<Map<String, Object>> response = client.post().uri(BASE_PATH)
@@ -97,7 +116,6 @@ class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
 
     @Test
     void criar_atividadeDeCasaSemPrazo_deveRetornar400() {
-        UUID turmaId = UUID.randomUUID();
         NovaAtividadeRequestDTO request =
                 buildNovaAtividade(TipoAtividade.CASA, "Leitura " + System.nanoTime(), null);
 
@@ -118,7 +136,6 @@ class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
 
     @Test
     void criar_semLogin_deveRetornar401() {
-        UUID turmaId = UUID.randomUUID();
         NovaAtividadeRequestDTO request =
                 buildNovaAtividade(TipoAtividade.DIA, "Sem login " + System.nanoTime(), null);
 
@@ -137,8 +154,6 @@ class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
     @Test
     void listar_porTurmaETipo_deveTrazerSoAsAtividadesFiltradas() {
         long ts = System.nanoTime();
-        UUID turmaId = UUID.randomUUID();
-        UUID outraTurmaId = UUID.randomUUID();
         UUID atividadeDoDia = criarAtividade(turmaId, buildNovaAtividade(TipoAtividade.DIA, "Roda " + ts, null));
         UUID atividadeDeCasa = criarAtividade(turmaId,
                 buildNovaAtividade(TipoAtividade.CASA, "Casa " + ts, LocalDate.of(2026, 12, 1)));
@@ -178,7 +193,6 @@ class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
     @Test
     void buscarPorId_comIdExistente_deveRetornar200() {
         long ts = System.nanoTime();
-        UUID turmaId = UUID.randomUUID();
         NovaAtividadeRequestDTO request =
                 buildNovaAtividade(TipoAtividade.CASA, "Massinha " + ts, LocalDate.of(2026, 11, 20));
         UUID id = criarAtividade(turmaId, request);
@@ -215,7 +229,6 @@ class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
     @Test
     void atualizar_soOTitulo_deveManterOsOutrosCampos() {
         long ts = System.nanoTime();
-        UUID turmaId = UUID.randomUUID();
         UUID id = criarAtividade(turmaId, buildNovaAtividade(TipoAtividade.DIA, "Original " + ts, null));
         AtualizarAtividadeRequestDTO request =
                 new AtualizarAtividadeRequestDTO(null, "  Atualizado " + ts + " ", null, null);
@@ -239,7 +252,7 @@ class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
     @Test
     void atualizar_paraCasaSemPrazo_deveRetornar400() {
         long ts = System.nanoTime();
-        UUID id = criarAtividade(UUID.randomUUID(), buildNovaAtividade(TipoAtividade.DIA, "Do dia " + ts, null));
+        UUID id = criarAtividade(turmaId, buildNovaAtividade(TipoAtividade.DIA, "Do dia " + ts, null));
         AtualizarAtividadeRequestDTO request =
                 new AtualizarAtividadeRequestDTO(TipoAtividade.CASA, null, null, null);
 
@@ -275,7 +288,7 @@ class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
 
     @Test
     void deletar_comIdExistente_deveRemoverAtividade() {
-        UUID id = criarAtividade(UUID.randomUUID(),
+        UUID id = criarAtividade(turmaId,
                 buildNovaAtividade(TipoAtividade.DIA, "Para remover " + System.nanoTime(), null));
 
         ResponseEntity<Void> response = client.delete().uri(BASE_PATH + "/" + id)
@@ -307,7 +320,6 @@ class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
     @Test
     void fluxo_professorCriaAtividade_deveAparecerNaListaDaTurma() {
         long ts = System.nanoTime();
-        UUID turmaId = UUID.randomUUID();
         UsuarioLogadoResponse professor = client.get().uri("/api/auth/me")
                 .header(HttpHeaders.AUTHORIZATION, bearer(token))
                 .retrieve()
@@ -332,20 +344,48 @@ class AtividadeControllerIntegrationTest extends IntegracaoTestBase {
         assertThat(atividade.titulo()).isEqualTo("Musicalizacao " + ts);
     }
 
+    // ---------- Helpers ----------
+
+    /** A atividade sempre pertence ao professor logado (a API recusa professorId de outra pessoa). */
     private NovaAtividadeRequestDTO buildNovaAtividade(TipoAtividade tipo, String titulo, LocalDate prazo) {
-        return new NovaAtividadeRequestDTO(UUID.randomUUID(), tipo, titulo, "Descricao de teste", prazo);
+        return new NovaAtividadeRequestDTO(professorId, tipo, titulo, "Descricao de teste", prazo);
     }
 
-    private UUID criarAtividade(UUID turmaId, NovaAtividadeRequestDTO request) {
+    private UUID criarAtividade(UUID turma, NovaAtividadeRequestDTO request) {
         ResponseEntity<Void> response = client.post().uri(BASE_PATH)
                 .header(HttpHeaders.AUTHORIZATION, bearer(token))
-                .header("turmaUUID", turmaId.toString())
+                .header("turmaUUID", turma.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
                 .toBodilessEntity();
 
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         String location = response.getHeaders().getLocation().toString();
         return UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+    }
+
+    /** Cria a turma pelo endpoint real da direção. */
+    private UUID criarTurma() {
+        String sufixo = String.valueOf(System.nanoTime());
+        ResponseEntity<TurmaResponse> response = client.post().uri("/api/turmas")
+                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new CadastrarTurmaRequest("Turma " + sufixo, "S" + sufixo.substring(sufixo.length() - 6)))
+                .retrieve()
+                .toEntity(TurmaResponse.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return response.getBody().id();
+    }
+
+    /** Vincula o professor à turma pelo endpoint real da direção. */
+    private void vincularProfessor(UUID turma, UUID professor) {
+        ResponseEntity<TurmaProfessorResponse> response = client.post().uri("/api/turmas/" + turma + "/professores")
+                .header(HttpHeaders.AUTHORIZATION, bearer(tokenDirecao))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new VincularProfessorTurmaRequest(professor))
+                .retrieve()
+                .toEntity(TurmaProfessorResponse.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 }

@@ -14,6 +14,8 @@ public interface SessaoRepository extends JpaRepository<Sessao, UUID> {
 
     Optional<Sessao> findByTokenHash(String tokenHash);
 
+    boolean existsByUsuario_IdAndRevogadoEmIsNullAndExpiraEmAfter(UUID usuarioId, Instant agora);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
         UPDATE Sessao s
@@ -30,15 +32,13 @@ public interface SessaoRepository extends JpaRepository<Sessao, UUID> {
 
     @Modifying(flushAutomatically = true)
     @Query("""
-    UPDATE Sessao s
-    SET s.revogadoEm = :agora
-    WHERE s.usuario.id = :usuarioId
-      AND s.revogadoEm IS NULL
-    """)
+        UPDATE Sessao s
+        SET s.revogadoEm = :agora
+        WHERE s.usuario.id = :usuarioId
+          AND s.revogadoEm IS NULL
+        """)
     int revogarTodasDoUsuario(
             @Param("usuarioId") UUID usuarioId,
             @Param("agora") Instant agora
     );
-
 }
-

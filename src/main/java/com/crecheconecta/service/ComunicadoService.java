@@ -47,11 +47,9 @@ public class ComunicadoService {
     public ComunicadoResponse criar(CriarComunicadoRequest request, UsuarioAtual solicitante) {
 
         var diretor = validarUsuario(solicitante, true);
-
         validarConteudo(request.titulo(), request.conteudo());
 
         var agora = clock.instant();
-
         var comunicado = new Comunicado();
         comunicado.setTitulo(request.titulo().strip());
         comunicado.setConteudo(request.conteudo().strip());
@@ -61,7 +59,6 @@ public class ComunicadoService {
         comunicado.setAtivo(true);
 
         comunicados.saveAndFlush(comunicado);
-
         auditoria.aposCommit("COMUNICADO_CRIADO", diretor.getId(), comunicado.getId());
 
         return ComunicadoResponse.de(comunicado);
@@ -70,18 +67,30 @@ public class ComunicadoService {
     @Transactional(readOnly = true)
     public Page<ComunicadoResponse> listar(int pagina, int tamanho, UsuarioAtual solicitante) {
 
+        return listar(pagina, tamanho, "", solicitante);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ComunicadoResponse> listar(int pagina, int tamanho, String busca, UsuarioAtual solicitante) {
+
         validarUsuario(solicitante, false);
 
         if (pagina < 0 || tamanho < 1 || tamanho > 100) {
 
-            throw new RegraNegocioException("Informe página a partir de zero " + "e tamanho entre 1 e 100.");
+            throw new RegraNegocioException("Informe página a partir de zero e tamanho entre 1 e 100.");
+        }
+
+        String termo = busca == null ? "" : busca.strip();
+        if (termo.length() > 150) {
+
+            throw new RegraNegocioException("A busca pode ter até 150 caracteres.");
         }
 
         var ordenacao = Sort.by("criadoEm").descending().and(Sort.by("id").descending());
-
         var paginacao = PageRequest.of(pagina, tamanho, ordenacao);
+        var resultado = termo.isEmpty() ? comunicados.findByAtivoTrue(paginacao) : comunicados.findByAtivoTrueAndTituloContainingIgnoreCase(termo, paginacao);
 
-        return comunicados.findByAtivoTrue(paginacao).map(ComunicadoResponse::de);
+        return resultado.map(ComunicadoResponse::de);
     }
 
     @Transactional(readOnly = true)
@@ -89,8 +98,8 @@ public class ComunicadoService {
 
         validarUsuario(solicitante, false);
 
-        var comunicado = comunicados.findByIdAndAtivoTrue(comunicadoId).orElseThrow(ComunicadoNaoEncontradoException::new);
-
+        var comunicado = comunicados.findByIdAndAtivoTrue(comunicadoId)
+                .orElseThrow(ComunicadoNaoEncontradoException::new);
         return ComunicadoResponse.de(comunicado);
     }
 
@@ -101,15 +110,12 @@ public class ComunicadoService {
         validarUsuario(solicitante, true);
 
         var comunicado = buscarComVersao(comunicadoId, request.versao());
-
         validarConteudo(request.titulo(), request.conteudo());
-
         comunicado.setTitulo(request.titulo().strip());
         comunicado.setConteudo(request.conteudo().strip());
         comunicado.setAtualizadoEm(clock.instant());
 
         comunicados.flush();
-
         auditoria.aposCommit("COMUNICADO_ATUALIZADO", solicitante.id(), comunicado.getId());
 
         return ComunicadoResponse.de(comunicado);
@@ -122,12 +128,10 @@ public class ComunicadoService {
         validarUsuario(solicitante, true);
 
         var comunicado = buscarComVersao(comunicadoId, versao);
-
         comunicado.setAtivo(false);
         comunicado.setAtualizadoEm(clock.instant());
 
         comunicados.flush();
-
         auditoria.aposCommit("COMUNICADO_INATIVADO", solicitante.id(), comunicado.getId());
 
         return ComunicadoResponse.de(comunicado);
@@ -135,7 +139,8 @@ public class ComunicadoService {
 
     private Comunicado buscarComVersao(UUID id, Long versao) {
 
-        var comunicado = comunicados.buscarAtivoComBloqueio(id).orElseThrow(ComunicadoNaoEncontradoException::new);
+        var comunicado = comunicados.buscarAtivoComBloqueio(id)
+                .orElseThrow(ComunicadoNaoEncontradoException::new);
 
         if (versao == null || !Objects.equals(comunicado.getVersao(), versao)) {
 
@@ -153,9 +158,7 @@ public class ComunicadoService {
         }
 
         var usuario = usuarios.findById(solicitante.id()).orElseThrow(this::acessoNegado);
-
         if (!usuario.isAtivo() || usuario.getSituacaoCadastro() != SituacaoCadastro.APROVADO || usuario.getPerfil() != solicitante.perfil()) {
-
             throw acessoNegado();
         }
 
@@ -176,7 +179,6 @@ public class ComunicadoService {
         }
 
         if (conteudo == null || conteudo.isBlank() || conteudo.length() > 5000) {
-
             throw new RegraNegocioException("Informe um conteúdo com até 5000 caracteres.");
         }
     }

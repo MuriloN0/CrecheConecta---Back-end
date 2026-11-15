@@ -18,6 +18,17 @@ public interface AlunoRepository extends JpaRepository<Aluno, UUID> {
 
     @Query("""
             SELECT a FROM Aluno a
+            WHERE (:ativo IS NULL OR a.ativo = :ativo)
+              AND LOCATE(LOWER(:nome), LOWER(a.nome)) > 0
+            """)
+    Page<Aluno> buscarPorNome(
+            @Param("nome") String nome,
+            @Param("ativo") Boolean ativo,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT a FROM Aluno a
             WHERE a.ativo = true AND NOT EXISTS (
                 SELECT m.id FROM MatriculaTurma m
                 WHERE m.alunoId = a.id AND m.encerradoEm IS NULL
@@ -26,10 +37,6 @@ public interface AlunoRepository extends JpaRepository<Aluno, UUID> {
     Page<Aluno> listarDisponiveis(Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("""
-            SELECT a
-            FROM Aluno a
-            WHERE a.id = :id
-            """)
+    @Query("SELECT a FROM Aluno a WHERE a.id = :id")
     Optional<Aluno> buscarPorIdComBloqueio(@Param("id") UUID id);
 }

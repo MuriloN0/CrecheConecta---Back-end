@@ -21,13 +21,15 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.TemporalAdjusters;
 import java.util.UUID;
 
 @Service
 public class CadastroResponsavelService {
 
     private static final ZoneId FUSO_CRECHE = ZoneId.of("America/Sao_Paulo");
-    private static final LocalDate DATA_NASCIMENTO_MINIMA = LocalDate.of(1900, 1, 1);
+    private static final int IDADE_MINIMA_MESES = 6;
+    private static final int IDADE_MAXIMA_ANOS = 4;
 
     private final ConviteCadastroRepository convites;
     private final UsuarioRepository usuarios;
@@ -37,17 +39,10 @@ public class CadastroResponsavelService {
     private final PasswordEncoder encoder;
     private final AuditoriaService auditoria;
     private final Clock clock;
+    private final TermoService termos;
 
-    public CadastroResponsavelService(
-            ConviteCadastroRepository convites,
-            UsuarioRepository usuarios,
-            AlunoRepository alunos,
-            AlunoResponsavelRepository vinculos,
-            TokenConviteService tokens,
-            PasswordEncoder encoder,
-            AuditoriaService auditoria,
-            Clock clock
-    ) {
+    public CadastroResponsavelService(ConviteCadastroRepository convites, UsuarioRepository usuarios, AlunoRepository alunos, AlunoResponsavelRepository vinculos, TokenConviteService tokens, PasswordEncoder encoder, AuditoriaService auditoria, Clock clock, TermoService termos) {
+
         this.convites = convites;
         this.usuarios = usuarios;
         this.alunos = alunos;
@@ -56,20 +51,20 @@ public class CadastroResponsavelService {
         this.encoder = encoder;
         this.auditoria = auditoria;
         this.clock = clock;
+        this.termos = termos;
     }
 
     @Transactional
     public DadosConviteResponsavel consultar(String token) {
+
         var convite = buscarDisponivel(token);
-        return new DadosConviteResponsavel(
-                convite.getNome(),
-                convite.getEmail(),
-                convite.getExpiraEm()
-        );
+
+        return new DadosConviteResponsavel(convite.getNome(), convite.getEmail(), convite.getExpiraEm(), termos.documentosCadastro(), faixaNascimento());
     }
 
     @Transactional
     public CadastroResponsavelResultado concluir(ConcluirCadastroResponsavelRequest request) {
+
         var convite = buscarDisponivel(request.token());
 
         if (usuarios.existsByEmail(convite.getEmail())) {
@@ -81,14 +76,28 @@ public class CadastroResponsavelService {
         }
 
         LocalDate dataNascimento = request.dataNascimento();
-        LocalDate hoje = LocalDate.now(clock.withZone(FUSO_CRECHE));
+        var faixa = faixaNascimento();
 
-        if (dataNascimento == null
-                || dataNascimento.isBefore(DATA_NASCIMENTO_MINIMA)
-                || dataNascimento.isAfter(hoje)) {
+        if (dataNascimento == null) {
+
+            throw new RegraNegocioException("Informe a data de nascimento do aluno.");
+        }
+
+        if (dataNascimento.isBefore(faixa.dataMinima())) {
+
             throw new RegraNegocioException(
-                    "Informe uma data de nascimento válida até hoje."
+                    "O aluno deve ter no máximo 4 anos pelo ano de nascimento."
             );
+        }
+
+        if (dataNascimento.isAfter(faixa.dataMaxima())) {
+
+            throw new RegraNegocioException("O aluno deve ter pelo menos 6 meses completos.");
+        }
+
+        if (!Boolean.TRUE.equals(request.aceitouDocumentos())) {
+
+            throw new RegraNegocioException("Aceite os Termos de Uso e a Política de Privacidade.");
         }
 
         var responsavel = new Usuario();
@@ -108,6 +117,7 @@ public class CadastroResponsavelService {
 
         Instant agora = clock.instant();
         if (!convite.estaDisponivel(agora)) {
+
             throw conviteInvalido();
         }
 
@@ -117,32 +127,41 @@ public class CadastroResponsavelService {
         vinculo.setCriadoEm(agora);
         vinculos.saveAndFlush(vinculo);
 
+        termos.registrarAceiteCadastro(responsavel.getId(), aluno.getId(), request.versaoTermos());
+
         convite.setConsumidoEm(agora);
         convites.flush();
 
-        auditoria.aposCommit(
-                "RESPONSAVEL_CADASTRO_CONCLUIDO",
-                responsavel.getId(),
-                aluno.getId()
-        );
+        auditoria.aposCommit("RESPONSAVEL_CADASTRO_CONCLUIDO", responsavel.getId(), aluno.getId());
 
-        return new CadastroResponsavelResultado(
-                responsavel.getId(),
-                aluno.getId(),
-                "Cadastro concluído. Você já pode entrar."
-        );
+        return new CadastroResponsavelResultado(responsavel.getId(), aluno.getId(), "Cadastro concluído. Você já pode entrar.");
+    }
+
+    private FaixaNascimento faixaNascimento() {
+
+        var hoje = LocalDate.now(clock.withZone(FUSO_CRECHE));
+        var dataMinima = LocalDate.of(hoje.getYear() - IDADE_MAXIMA_ANOS, 1, 1);
+        var dataMaxima = hoje.minusMonths(IDADE_MINIMA_MESES);
+
+        if (hoje.getDayOfMonth() == hoje.lengthOfMonth()) {
+            dataMaxima = dataMaxima.with(TemporalAdjusters.lastDayOfMonth());
+        }
+
+        return new FaixaNascimento(dataMinima, dataMaxima);
     }
 
     private ConviteCadastro buscarDisponivel(String token) {
+
         if (token == null || !token.matches("[A-Za-z0-9_-]{43}")) {
+
             throw conviteInvalido();
         }
 
         var convite = convites.buscarPorTokenHashComBloqueio(tokens.calcularHash(token))
                 .orElseThrow(this::conviteInvalido);
 
-        if (convite.getPerfil() != Perfil.RESPONSAVEL
-                || !convite.estaDisponivel(clock.instant())) {
+        if (convite.getPerfil() != Perfil.RESPONSAVEL || !convite.estaDisponivel(clock.instant())) {
+
             throw conviteInvalido();
         }
 
@@ -150,12 +169,19 @@ public class CadastroResponsavelService {
     }
 
     private RegraNegocioException conviteInvalido() {
-        return new RegraNegocioException(
-                "Convite inválido, expirado, cancelado ou já utilizado."
-        );
+
+        return new RegraNegocioException("Convite inválido, expirado, cancelado ou já utilizado.");
     }
 
-    public record DadosConviteResponsavel(String nome, String email, Instant expiraEm) {}
+    public record DadosConviteResponsavel(String nome, String email, Instant expiraEm, TermoService.DocumentosCadastro documentos, FaixaNascimento faixaNascimento) {
 
-    public record CadastroResponsavelResultado(UUID usuarioId, UUID alunoId, String mensagem) {}
+    }
+
+    public record FaixaNascimento(LocalDate dataMinima, LocalDate dataMaxima) {
+
+    }
+
+    public record CadastroResponsavelResultado(UUID usuarioId, UUID alunoId, String mensagem) {
+
+    }
 }

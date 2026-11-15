@@ -24,10 +24,16 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Observações do aluno: o professor da turma escreve; responsável, professor e direção leem.
+ * As regras finas (vínculo com o aluno, autor) ficam no ObservacaoService.
+ */
 @RestController
 @RequestMapping("/api/alunos/{alunoId}/observacoes")
-@PreAuthorize("hasRole('RESPONSAVEL')")
 public class ObservacaoController {
+
+    private static final String LEITURA = "hasAnyRole('RESPONSAVEL', 'PROFESSOR', 'DIRECAO')";
+    private static final String ESCRITA = "hasRole('PROFESSOR')";
 
     private final ObservacaoService observacoes;
 
@@ -36,30 +42,35 @@ public class ObservacaoController {
     }
 
     @PostMapping
+    @PreAuthorize(ESCRITA)
     public ResponseEntity<Void> cadastrar(@PathVariable UUID alunoId, @Valid @RequestBody ObservacaoRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
         UUID id = observacoes.cadastrar(alunoId, request.paraDominio(), UsuarioAtual.de(autenticado));
         return ResponseEntity.created(URI.create("/api/alunos/" + alunoId + "/observacoes/" + id)).cacheControl(CacheControl.noStore()).build();
     }
 
     @GetMapping
+    @PreAuthorize(LEITURA)
     public ResponseEntity<List<ObservacaoResponse>> listar(@PathVariable UUID alunoId, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
         var resposta = observacoes.listar(alunoId, UsuarioAtual.de(autenticado));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
     @GetMapping("/{observacaoId}")
+    @PreAuthorize(LEITURA)
     public ResponseEntity<ObservacaoResponse> visualizar(@PathVariable UUID alunoId, @PathVariable UUID observacaoId, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
         var resposta = observacoes.visualizar(alunoId, observacaoId, UsuarioAtual.de(autenticado));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
     @PutMapping("/{observacaoId}")
+    @PreAuthorize(ESCRITA)
     public ResponseEntity<ObservacaoResponse> atualizar(@PathVariable UUID alunoId, @PathVariable UUID observacaoId, @Valid @RequestBody AtualizarObservacaoRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
         var resposta = observacoes.atualizar(alunoId, observacaoId, request.paraDominio(), request.versao(), UsuarioAtual.de(autenticado));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
     @DeleteMapping("/{observacaoId}")
+    @PreAuthorize(ESCRITA)
     public ResponseEntity<Void> excluir(@PathVariable UUID alunoId, @PathVariable UUID observacaoId, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
         observacoes.excluir(alunoId, observacaoId, UsuarioAtual.de(autenticado));
         return ResponseEntity.noContent().build();

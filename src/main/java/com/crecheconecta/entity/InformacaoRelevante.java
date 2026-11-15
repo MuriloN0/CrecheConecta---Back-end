@@ -2,15 +2,15 @@ package com.crecheconecta.entity;
 
 import jakarta.persistence.*;
 import java.time.Instant;
-import java.util.*;
+import java.util.UUID;
 import lombok.*;
 
 @Entity
-@Table(name = "fichas_saude")
+@Table(name = "informacoes_relevantes")
 @Getter
 @Setter
 @NoArgsConstructor
-public class FichaSaude {
+public class InformacaoRelevante {
 
     @Id private UUID id = UUID.randomUUID();
 
@@ -30,16 +30,4 @@ public class FichaSaude {
     private Instant dataAtualizacao;
 
     @Version private Long versao;
-
-    @OneToMany(
-            mappedBy = "ficha",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true,
-            fetch = FetchType.EAGER)
-    private List<AnexoSaude> anexos = new ArrayList<>();
-
-    public void adicionarAnexo(AnexoSaude anexo) {
-        anexo.setFicha(this);
-        this.anexos.add(anexo);
-    }
 }

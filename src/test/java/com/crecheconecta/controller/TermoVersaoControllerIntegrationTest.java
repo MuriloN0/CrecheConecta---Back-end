@@ -230,7 +230,7 @@ class TermoVersaoControllerIntegrationTest extends BaseControllerIntegrationTest
     void novaVersaoPublicada_deveExigirNovoAceiteDeTodos() {
 
         // Arrange
-        String tokenPai = autenticar(criarUsuario(Perfil.RESPONSAVEL));
+        String tokenPai = autenticar(criarResponsavelSemAceite());
 
         // Act + Assert 1: ainda não aceitou nada, vê a versão vigente
         var antes = chamar(HttpMethod.GET, "/api/termo/status", tokenPai, null, TermoStatusResponse.class);
@@ -240,7 +240,7 @@ class TermoVersaoControllerIntegrationTest extends BaseControllerIntegrationTest
         assertThat(antes.getBody().termoUso()).isEqualTo("Termo vigente");
 
         // Act + Assert 2: aceita, não precisa mais
-        var aceite = chamar(HttpMethod.POST, "/api/termo/aceite", tokenPai, null, Void.class);
+        var aceite = chamar(HttpMethod.POST, "/api/termo/aceite", tokenPai, new TermoController.AceitarTermoRequest(antes.getBody().versao()), Void.class);
         assertThat(aceite.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         var depoisDoAceite = chamar(HttpMethod.GET, "/api/termo/status", tokenPai, null, TermoStatusResponse.class);
         assertThat(depoisDoAceite.getBody()).isNotNull();

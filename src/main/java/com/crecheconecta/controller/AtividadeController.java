@@ -22,56 +22,72 @@ public class AtividadeController {
     private final AtividadeService atividadeService;
 
     public AtividadeController(AtividadeService atividadeService) {
-
         this.atividadeService = atividadeService;
     }
 
     @GetMapping("/turmas")
     public ResponseEntity<List<AtividadeTurmaResponse>> listarTurmas() {
-
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(atividadeService.listarTurmas());
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(atividadeService.listarTurmas());
     }
 
     @PostMapping
-    public ResponseEntity<Void> criar(@RequestHeader("turmaUUID") UUID turmaId, @Valid @RequestBody NovaAtividadeRequestDTO request) {
-
+    public ResponseEntity<Void> criar(
+            @RequestHeader("turmaUUID") UUID turmaId,
+            @Valid @RequestBody NovaAtividadeRequestDTO request
+    ) {
         UUID atividadeId = atividadeService.criar(turmaId, request);
-
-        return ResponseEntity.created(URI.create("/api/atividades/" + atividadeId)).cacheControl(CacheControl.noStore()).build();
+        return ResponseEntity.created(URI.create("/api/atividades/" + atividadeId))
+                .cacheControl(CacheControl.noStore())
+                .build();
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<Void> atualizarParcial(@PathVariable UUID id, @Valid @RequestBody AtualizarAtividadeRequestDTO request) {
-
+    public ResponseEntity<Void> atualizarParcial(
+            @PathVariable UUID id,
+            @Valid @RequestBody AtualizarAtividadeRequestDTO request
+    ) {
         atividadeService.atualizar(id, request);
-
         return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable UUID id) {
-
         atividadeService.deletar(id);
-
         return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
     }
 
     @GetMapping
-    public ResponseEntity<List<AtividadeResponseDTO>> listarTodas(@RequestHeader(value = "turmaUUID", required = false) UUID turmaId, @RequestParam(value = "tipo", required = false) TipoAtividade tipo) {
-
-        var resposta = atividadeService.listar(turmaId, tipo)
-                .stream()
+    public ResponseEntity<List<AtividadeResponseDTO>> listarTodas(
+            @RequestHeader(value = "turmaUUID", required = false) UUID turmaId,
+            @RequestParam(value = "tipo", required = false) TipoAtividade tipo
+    ) {
+        var resposta = atividadeService.listar(turmaId, tipo).stream()
                 .map(AtividadeResponseDTO::fromEntity)
                 .toList();
 
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<AtividadeResponseDTO> buscarPorId(@PathVariable UUID id) {
+    @GetMapping("/paginadas")
+    public ResponseEntity<PaginaAtividades> listarPaginadas(
+            @RequestHeader(value = "turmaUUID", required = false) UUID turmaId,
+            @RequestParam(required = false) TipoAtividade tipo,
+            @RequestParam(defaultValue = "0") int pagina
+    ) {
+        var resultado = atividadeService.listarPaginadas(turmaId, tipo, pagina)
+                .map(AtividadeResponseDTO::fromEntity);
 
-        var resposta = AtividadeResponseDTO.fromEntity(atividadeService.buscarPorId(id));
-
+        var resposta = new PaginaAtividades(resultado.getContent(), resultado.getTotalPages());
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<AtividadeResponseDTO> buscarPorId(@PathVariable UUID id) {
+        var resposta = AtividadeResponseDTO.fromEntity(atividadeService.buscarPorId(id));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
+    }
+
+    public record PaginaAtividades(List<AtividadeResponseDTO> content, int totalPages) {}
 }

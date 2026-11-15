@@ -24,11 +24,10 @@ public class EmailService {
     private final RestClient resend;
     private final String remetente;
 
-    public EmailService(
-            @Qualifier("resendRestClient") RestClient resend,
-            @Value("${app.email.resend.remetente}") String remetente
-    ) {
+    public EmailService(@Qualifier("resendRestClient") RestClient resend, @Value("${app.email.resend.remetente}") String remetente) {
+
         if (remetente == null || remetente.isBlank()) {
+
             throw new IllegalStateException("RESEND_FROM deve estar configurado.");
         }
 
@@ -36,34 +35,29 @@ public class EmailService {
         this.remetente = remetente;
     }
 
-    public String enviarCodigo(
-            UUID acaoId,
-            String destinatario,
-            String codigo,
-            FinalidadeAcao finalidade
-    ) {
+    public String enviarCodigo(UUID acaoId, String destinatario, String codigo, FinalidadeAcao finalidade) {
+
         Objects.requireNonNull(acaoId, "A ação deve ser informada.");
         Objects.requireNonNull(finalidade, "A finalidade deve ser informada.");
         validarDestinatario(destinatario);
 
         if (codigo == null || !codigo.matches("[0-9]{6}")) {
+
             throw new IllegalArgumentException("O código deve conter seis dígitos.");
         }
 
         String assunto = switch (finalidade) {
+
             case LOGIN -> "CrecheConecta - Código de acesso";
             case RECUPERACAO_SENHA -> "CrecheConecta - Recuperação de senha";
-            case REDEFINICAO_SENHA -> throw new IllegalArgumentException(
-                    "A autorização de redefinição não é enviada por e-mail."
-            );
+            case REDEFINICAO_SENHA -> throw new IllegalArgumentException("A autorização de redefinição não é enviada por e-mail.");
         };
 
         String finalidadeTexto = switch (finalidade) {
+
             case LOGIN -> "confirmar seu acesso";
             case RECUPERACAO_SENHA -> "recuperar sua senha";
-            case REDEFINICAO_SENHA -> throw new IllegalArgumentException(
-                    "Finalidade incompatível com envio de código."
-            );
+            case REDEFINICAO_SENHA -> throw new IllegalArgumentException("Finalidade incompatível com envio de código.");
         };
 
         String texto = """
@@ -82,14 +76,13 @@ public class EmailService {
                 Equipe CrecheConecta
                 """.formatted(finalidadeTexto, codigo);
 
-        var requisicao = new EnviarEmailRequest(
-                remetente, List.of(destinatario), assunto, texto
-        );
+        var requisicao = new EnviarEmailRequest(remetente, List.of(destinatario), assunto, texto);
 
         return enviar(acaoId, "acao-verificacao/" + acaoId, requisicao);
     }
 
     public String enviarAvisoSenhaAlterada(UUID redefinicaoId, String destinatario) {
+
         Objects.requireNonNull(redefinicaoId, "A redefinição deve ser informada.");
         validarDestinatario(destinatario);
 
@@ -109,21 +102,18 @@ public class EmailService {
                 Equipe CrecheConecta
                 """;
 
-        var requisicao = new EnviarEmailRequest(
-                remetente,
-                List.of(destinatario),
-                "CrecheConecta - Sua senha foi alterada",
-                texto
-        );
+        var requisicao = new EnviarEmailRequest(remetente, List.of(destinatario), "CrecheConecta - Sua senha foi alterada", texto);
 
         return enviar(redefinicaoId, "senha-alterada/" + redefinicaoId, requisicao);
     }
 
     public String enviarConviteProfessor(UUID conviteId, String destinatario, String linkCadastro) {
+
         Objects.requireNonNull(conviteId, "O convite deve ser informado.");
         validarDestinatario(destinatario);
 
         if (linkCadastro == null || linkCadastro.isBlank()) {
+
             throw new IllegalArgumentException("O link de cadastro deve ser informado.");
         }
 
@@ -138,8 +128,7 @@ public class EmailService {
 
                 %s
 
-                Este link possui validade limitada e só poderá
-                ser utilizado uma vez.
+                O convite é válido por 24 horas e só pode ser utilizado uma vez.
 
                 Não compartilhe este link.
                 Se você não reconhece este convite, ignore a mensagem.
@@ -147,21 +136,18 @@ public class EmailService {
                 Equipe CrecheConecta
                 """.formatted(linkCadastro);
 
-        var requisicao = new EnviarEmailRequest(
-                remetente,
-                List.of(destinatario),
-                "CrecheConecta - Convite para professor",
-                texto
-        );
+        var requisicao = new EnviarEmailRequest(remetente, List.of(destinatario), "CrecheConecta - Convite para professor", texto);
 
         return enviar(conviteId, "convite-professor/" + conviteId, requisicao);
     }
 
     public String enviarConviteDirecao(UUID conviteId, String destinatario, String linkCadastro) {
+
         Objects.requireNonNull(conviteId, "O convite deve ser informado.");
         validarDestinatario(destinatario);
 
         if (linkCadastro == null || linkCadastro.isBlank()) {
+
             throw new IllegalArgumentException("O link de cadastro deve ser informado.");
         }
 
@@ -186,25 +172,18 @@ public class EmailService {
                 Equipe CrecheConecta
                 """.formatted(linkCadastro);
 
-        var requisicao = new EnviarEmailRequest(
-                remetente,
-                List.of(destinatario),
-                "CrecheConecta - Convite para direção",
-                texto
-        );
+        var requisicao = new EnviarEmailRequest(remetente, List.of(destinatario), "CrecheConecta - Convite para direção", texto);
 
         return enviar(conviteId, "convite-direcao/" + conviteId, requisicao);
     }
 
-    public String enviarConviteResponsavel(
-            UUID conviteId,
-            String destinatario,
-            String linkCadastro
-    ) {
+    public String enviarConviteResponsavel(UUID conviteId, String destinatario, String linkCadastro) {
+
         Objects.requireNonNull(conviteId, "O convite deve ser informado.");
         validarDestinatario(destinatario);
 
         if (linkCadastro == null || linkCadastro.isBlank()) {
+
             throw new IllegalArgumentException("O link de cadastro deve ser informado.");
         }
 
@@ -218,21 +197,13 @@ public class EmailService {
                 O convite é válido por 24 horas e só pode ser utilizado uma vez.
                 """.formatted(linkCadastro);
 
-        var requisicao = new EnviarEmailRequest(
-                remetente,
-                List.of(destinatario),
-                "CrecheConecta - Convite para responsável",
-                texto
-        );
+        var requisicao = new EnviarEmailRequest(remetente, List.of(destinatario), "CrecheConecta - Convite para responsável", texto);
 
         return enviar(conviteId, "convite-responsavel/" + conviteId, requisicao);
     }
 
-    private String enviar(
-            UUID referenciaId,
-            String chaveIdempotencia,
-            EnviarEmailRequest requisicao
-    ) {
+    private String enviar(UUID referenciaId, String chaveIdempotencia, EnviarEmailRequest requisicao) {
+
         try {
             var resposta = resend.post()
                     .uri("/emails")
@@ -242,59 +213,45 @@ public class EmailService {
                     .body(EnviarEmailResponse.class);
 
             if (resposta == null || resposta.id() == null || resposta.id().isBlank()) {
-                log.warn(
-                        "Resend retornou resposta sem identificador. referenciaId={}",
-                        referenciaId
-                );
+
+                log.warn("Resend retornou resposta sem identificador. referenciaId={}", referenciaId);
                 throw envioIndisponivel();
             }
 
-            log.info(
-                    "Resend aceitou o envio. referenciaId={}, emailId={}",
-                    referenciaId,
-                    resposta.id()
-            );
-
+            log.info("Resend aceitou o envio. referenciaId={}, emailId={}", referenciaId, resposta.id());
             return resposta.id();
         } catch (RestClientResponseException exception) {
-            log.warn(
-                    "Resend rejeitou o envio. referenciaId={}, status={}",
-                    referenciaId,
-                    exception.getStatusCode().value()
-            );
+
+            log.warn("Resend rejeitou o envio. referenciaId={}, status={}", referenciaId, exception.getStatusCode().value());
+
             throw envioIndisponivel();
         } catch (RestClientException exception) {
-            log.warn(
-                    "Falha na comunicação com Resend. referenciaId={}, tipo={}",
-                    referenciaId,
-                    exception.getClass().getSimpleName()
-            );
+            log.warn("Falha na comunicação com Resend. referenciaId={}, tipo={}", referenciaId, exception.getClass().getSimpleName());
             throw envioIndisponivel();
         }
     }
 
     private void validarDestinatario(String destinatario) {
+
         if (destinatario == null || destinatario.isBlank()) {
+
             throw new IllegalArgumentException("O destinatário deve ser informado.");
         }
     }
 
     private AutenticacaoException envioIndisponivel() {
+
         return new AutenticacaoException(ErroAutenticacao.ENVIO_EMAIL_INDISPONIVEL);
     }
 
-    public record EnviarEmailRequest(
-            String from,
-            List<String> to,
-            String subject,
-            String text
-    ) {
+    public record EnviarEmailRequest(String from, List<String> to, String subject, String text) {
+
         @Override
         public String toString() {
+
             return "EnviarEmailRequest[dados omitidos]";
         }
     }
 
-    public record EnviarEmailResponse(String id) {
-    }
+    public record EnviarEmailResponse(String id) {}
 }

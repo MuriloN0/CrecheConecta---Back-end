@@ -73,6 +73,19 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    @ExceptionHandler(TermoPendenteException.class)
+    public ResponseEntity<ProblemDetail> tratarTermoPendente(
+            TermoPendenteException exception
+    ) {
+        registrarAuditoria("ERRO_TERMO_PENDENTE");
+
+        return resposta(
+                HttpStatus.FORBIDDEN,
+                "TERMO_PENDENTE",
+                exception.getMessage()
+        );
+    }
+
     @ExceptionHandler(RegraNegocioException.class)
     public ResponseEntity<ProblemDetail> tratarRegraNegocio(
             RegraNegocioException exception
@@ -86,16 +99,16 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         );
     }
 
-    @ExceptionHandler(FichaSaudeNaoEncontradaException.class)
-    public ResponseEntity<ProblemDetail> tratarFichaNaoEncontrada(
-            FichaSaudeNaoEncontradaException exception
+    @ExceptionHandler(InformacaoRelevanteNaoEncontradaException.class)
+    public ResponseEntity<ProblemDetail> tratarInformacaoRelevanteNaoEncontrada(
+            InformacaoRelevanteNaoEncontradaException exception
     ) {
         registrarAuditoria("ERRO_NAO_ENCONTRADA");
 
         return resposta(
                 HttpStatus.NOT_FOUND,
-                "FICHA_SAUDE_NAO_ENCONTRADA",
-                "Ficha de saúde não encontrada."
+                "INFORMACAO_RELEVANTE_NAO_ENCONTRADA",
+                "Informação relevante não encontrada."
         );
     }
 

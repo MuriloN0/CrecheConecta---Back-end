@@ -2,6 +2,9 @@ package com.crecheconecta.repository;
 
 import com.crecheconecta.entity.DiarioRotina;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -10,12 +13,19 @@ import java.util.UUID;
 
 public interface DiarioRotinaRepository extends JpaRepository<DiarioRotina, UUID> {
 
-    // Diário de um dia específico (no máximo 1, garantido por uk_diarios_aluno_data).
     Optional<DiarioRotina> findByAlunoIdAndData(UUID alunoId, LocalDate data);
 
-    // Diários de uma turma num dia (tela do professor).
     List<DiarioRotina> findByTurmaIdAndData(UUID turmaId, LocalDate data);
 
-    // Diário mais recente do aluno.
+    List<DiarioRotina> findByTurmaIdAndDataAndAlunoIdIn(
+            UUID turmaId, LocalDate data, List<UUID> alunos
+    );
+
     Optional<DiarioRotina> findFirstByAlunoIdOrderByDataDesc(UUID alunoId);
+
+    List<DiarioRotina> findByAlunoIdOrderByDataDesc(UUID alunoId);
+
+    @Modifying(flushAutomatically = true)
+    @Query("UPDATE DiarioRotina d SET d.observacaoProfessor = NULL WHERE d.alunoId = :alunoId")
+    int apagarObservacoesDoAluno(@Param("alunoId") UUID alunoId);
 }

@@ -1,0 +1,43 @@
+# CI do back-end: compila e roda a suíte completa de testes (unitários + integração).
+# Os testes usam H2 em memória (perfil "test"), então não precisa de Postgres nem de segredos.
+name: CI Back-end
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+# Só leitura do repositório: o workflow não publica nada.
+permissions:
+  contents: read
+
+# Um push novo na mesma branch cancela a execução anterior, que ficou desatualizada.
+concurrency:
+  group: ci-back-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    name: Testes (Java 21)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v5
+
+      - name: Instalar Java 21 (com cache do Maven)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Rodar os testes
+        run: ./mvnw -B test
+
+      - name: Resumo das classes com falha
+        if: failure()
+        run: |
+          grep -h -E "Tests run:.*(Failures: [1-9]|Errors: [1-9])" target/surefire-reports/*.txt || true

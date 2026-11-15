@@ -17,9 +17,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Diário de Rotina Digital, lado do professor.
- */
 @RestController
 @RequestMapping("/api/turmas/{turmaId}/diarios")
 public class DiarioRotinaController {
@@ -27,24 +24,31 @@ public class DiarioRotinaController {
     private final DiarioRotinaService diarios;
 
     public DiarioRotinaController(DiarioRotinaService diarios) {
+
         this.diarios = diarios;
     }
 
-    // GET /api/turmas/{turmaId}/diarios/2026-11-07  -> alunos da turma com o diário do dia
-    @GetMapping("/{data}")
+    @GetMapping(value = "/{data}", params = "!pagina")
     public ResponseEntity<List<DiarioAlunoResponse>> consultar(@PathVariable UUID turmaId, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = diarios.consultar(turmaId, data, UsuarioAtual.de(autenticado));
-
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
-    // PUT /api/turmas/{turmaId}/diarios/2026-11-07/alunos/{alunoId}  -> cria ou edita
+    @GetMapping(value = "/{data}", params = "pagina")
+    public ResponseEntity<PaginaDiario> consultarPaginado(@PathVariable UUID turmaId, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data, @RequestParam int pagina, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+
+        var resultado = diarios.consultarPaginado(turmaId, data, pagina, UsuarioAtual.de(autenticado));
+
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(new PaginaDiario(resultado.getContent(), resultado.getTotalPages()));
+    }
+
     @PutMapping("/{data}/alunos/{alunoId}")
     public ResponseEntity<DiarioRegistroResponse> registrar(@PathVariable UUID turmaId, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data, @PathVariable UUID alunoId, @Valid @RequestBody RegistrarDiarioRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = diarios.registrar(turmaId, alunoId, data, request, UsuarioAtual.de(autenticado));
-
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
@@ -52,7 +56,8 @@ public class DiarioRotinaController {
     public ResponseEntity<Void> excluir(@PathVariable UUID turmaId, @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data, @PathVariable UUID alunoId, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         diarios.excluir(turmaId, alunoId, data, UsuarioAtual.de(autenticado));
-
         return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build();
     }
+
+    public record PaginaDiario(List<DiarioAlunoResponse> content, int totalPages) {}
 }

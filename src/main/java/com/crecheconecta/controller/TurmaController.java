@@ -34,15 +34,15 @@ public class TurmaController {
     public ResponseEntity<TurmaResponse> cadastrar(@Valid @RequestBody CadastrarTurmaRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = turmas.cadastrar(request, UsuarioAtual.de(autenticado));
-
-        return ResponseEntity.created(URI.create("/api/turmas/" + resposta.id())).cacheControl(CacheControl.noStore()).body(resposta);
+        return ResponseEntity.created(URI.create("/api/turmas/" + resposta.id()))
+                .cacheControl(CacheControl.noStore())
+                .body(resposta);
     }
 
     @GetMapping
-    public ResponseEntity<Page<TurmaResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(required = false) Boolean ativo, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<TurmaResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(required = false) Boolean ativo, @RequestParam(required = false) String nome, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
-        var resposta = turmas.listar(pagina, tamanho, ativo, UsuarioAtual.de(autenticado));
-
+        var resposta = turmas.listar(pagina, tamanho, ativo, nome, UsuarioAtual.de(autenticado));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
@@ -50,7 +50,6 @@ public class TurmaController {
     public ResponseEntity<TurmaResponse> visualizar(@PathVariable UUID turmaId, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = turmas.visualizar(turmaId, UsuarioAtual.de(autenticado));
-
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
@@ -58,7 +57,6 @@ public class TurmaController {
     public ResponseEntity<TurmaResponse> atualizar(@PathVariable UUID turmaId, @Valid @RequestBody AtualizarTurmaRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = turmas.atualizar(turmaId, request, UsuarioAtual.de(autenticado));
-
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
@@ -66,7 +64,6 @@ public class TurmaController {
     public ResponseEntity<TurmaResponse> inativar(@PathVariable UUID turmaId, @Valid @RequestBody InativarTurmaRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = turmas.inativar(turmaId, request.versao(), UsuarioAtual.de(autenticado));
-
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 }

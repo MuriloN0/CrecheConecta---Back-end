@@ -1,6 +1,5 @@
 package com.crecheconecta.service;
 
-
 import com.crecheconecta.dto.ConfirmarLoginRequest;
 import com.crecheconecta.dto.SessaoResponse;
 import com.crecheconecta.entity.FinalidadeAcao;
@@ -28,14 +27,8 @@ public class ConfirmacaoLoginService {
     private final TokenSessaoService tokens;
     private final TransactionTemplate transacao;
 
-    public ConfirmacaoLoginService(
-            UsuarioRepository usuarios,
-            AcaoVerificacaoRepository acoes,
-            SessaoRepository sessoes,
-            SegredoVerificacaoService segredos,
-            TokenSessaoService tokens,
-            PlatformTransactionManager transactionManager
-    ) {
+    public ConfirmacaoLoginService(UsuarioRepository usuarios, AcaoVerificacaoRepository acoes, SessaoRepository sessoes, SegredoVerificacaoService segredos, TokenSessaoService tokens, PlatformTransactionManager transactionManager) {
+
         this.usuarios = usuarios;
         this.acoes = acoes;
         this.sessoes = sessoes;
@@ -45,84 +38,69 @@ public class ConfirmacaoLoginService {
     }
 
     public SessaoResponse confirmar(ConfirmarLoginRequest request) {
-        var resultado = Objects.requireNonNull(
-                transacao.execute(status -> validarECriarSessao(request))
-        );
+
+        var resultado = Objects.requireNonNull(transacao.execute(status -> validarECriarSessao(request)));
 
         if (resultado.erro() != null) {
+
             throw new AutenticacaoException(resultado.erro());
         }
 
         return resultado.sessao();
     }
 
-    private ResultadoConfirmacao validarECriarSessao(
-            ConfirmarLoginRequest request
-    ) {
-        var usuarioId = acoes.buscarUsuarioId(request.acaoId())
-                .orElse(null);
+    private ResultadoConfirmacao validarECriarSessao(ConfirmarLoginRequest request) {
 
+        var usuarioId = acoes.buscarUsuarioId(request.acaoId()).orElse(null);
         if (usuarioId == null) {
+
             return falha(ErroAutenticacao.ACAO_INVALIDA);
         }
 
-        var usuario = usuarios.buscarPorIdComBloqueio(usuarioId)
-                .orElse(null);
-
+        var usuario = usuarios.buscarPorIdComBloqueio(usuarioId).orElse(null);
         if (usuario == null) {
+
             return falha(ErroAutenticacao.ACAO_INVALIDA);
         }
 
-        var acao = acoes.buscarPorIdComBloqueio(request.acaoId())
-                .orElse(null);
-
+        var acao = acoes.buscarPorIdComBloqueio(request.acaoId()).orElse(null);
         Instant agora = Instant.now();
 
-        if (acao == null
-                || !acao.getUsuario().getId().equals(usuarioId)
-                || acao.getFinalidade() != FinalidadeAcao.LOGIN
-                || acao.getConsumidoEm() != null
-                || acao.getInvalidadoEm() != null
-                || !acao.getExpiraEm().isAfter(agora)) {
+        if (acao == null || !acao.getUsuario().getId().equals(usuarioId) || acao.getFinalidade() != FinalidadeAcao.LOGIN || acao.getConsumidoEm() != null || acao.getInvalidadoEm() != null || !acao.getExpiraEm().isAfter(agora)) {
+
             return falha(ErroAutenticacao.ACAO_INVALIDA);
         }
 
-        if (!usuario.isAtivo()
-                || (usuario.getBloqueadoAte() != null
-                && usuario.getBloqueadoAte().isAfter(agora))) {
+        if (!usuario.isAtivo() || (usuario.getBloqueadoAte() != null && usuario.getBloqueadoAte().isAfter(agora))) {
+
             acao.setInvalidadoEm(agora);
             return falha(ErroAutenticacao.ACAO_INVALIDA);
         }
 
-        long errosRecentes = acoes.somarTentativasDesde(
-                usuarioId,
-                FinalidadeAcao.LOGIN,
-                agora.minusSeconds(900)
-        );
+        long errosRecentes = acoes.somarTentativasDesde(usuarioId, FinalidadeAcao.LOGIN, agora.minusSeconds(900));
 
         if (acao.getTentativas() >= 5 || errosRecentes >= 10) {
+
             acao.setInvalidadoEm(agora);
             return falha(ErroAutenticacao.LIMITE_TENTATIVAS);
         }
 
-        boolean correto = segredos.conferir(
-                usuarioId,
-                acao.getId(),
-                FinalidadeAcao.LOGIN,
-                request.codigo(),
-                acao.getSegredoHash()
-        );
+        boolean correto = segredos.conferir(usuarioId, acao.getId(), FinalidadeAcao.LOGIN, request.codigo(), acao.getSegredoHash());
 
         if (!correto) {
             acao.setTentativas(acao.getTentativas() + 1);
 
-            if (acao.getTentativas() >= 5
-                    || errosRecentes + 1 >= 10) {
+            if (acao.getTentativas() >= 5 || errosRecentes + 1 >= 10) {
                 acao.setInvalidadoEm(agora);
                 return falha(ErroAutenticacao.LIMITE_TENTATIVAS);
             }
 
             return falha(ErroAutenticacao.ACAO_INVALIDA);
+        }
+
+        if (sessoes.existsByUsuario_IdAndRevogadoEmIsNullAndExpiraEmAfter(usuarioId, agora)) {
+
+            return falha(ErroAutenticacao.SESSAO_ATIVA);
         }
 
         String token = tokens.gerar();
@@ -136,27 +114,13 @@ public class ConfirmacaoLoginService {
         sessoes.save(sessao);
         acao.setConsumidoEm(agora);
 
-        return new ResultadoConfirmacao(
-                null,
-                new SessaoResponse(
-                        token,
-                        "Bearer",
-                        sessao.getExpiraEm(),
-                        usuario.getId(),
-                        usuario.getNome(),
-                        usuario.getPerfil()
-                )
-        );
+        return new ResultadoConfirmacao(null, new SessaoResponse(token, "Bearer", sessao.getExpiraEm(), usuario.getId(), usuario.getNome(), usuario.getPerfil()));
     }
 
     private ResultadoConfirmacao falha(ErroAutenticacao erro) {
+
         return new ResultadoConfirmacao(erro, null);
     }
 
-    private record ResultadoConfirmacao(
-            ErroAutenticacao erro,
-            SessaoResponse sessao
-    ) {
-    }
-
+    private record ResultadoConfirmacao(ErroAutenticacao erro, SessaoResponse sessao) {}
 }
