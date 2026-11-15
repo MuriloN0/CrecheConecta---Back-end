@@ -99,6 +99,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/direcao/me").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.POST, "/api/direcao/convites", "/api/direcao/me/inativar").hasRole("DIRECAO")
                         .requestMatchers(HttpMethod.POST, "/api/cadastro/direcao/consultar-convite", "/api/cadastro/direcao/concluir").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/direcao", "/api/direcao/me", "/api/auditoria").hasRole("DIRECAO")
 
                         // Sessão e termos do usuário.
                         .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/termo/status")

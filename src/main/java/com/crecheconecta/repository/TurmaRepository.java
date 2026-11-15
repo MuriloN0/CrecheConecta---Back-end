@@ -16,11 +16,18 @@ public interface TurmaRepository extends JpaRepository<Turma, UUID> {
 
     Page<Turma> findByAtivo(boolean ativo, Pageable pageable);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
-            SELECT t
-            FROM Turma t
-            WHERE t.id = :id
+            SELECT t FROM Turma t
+            WHERE (:ativo IS NULL OR t.ativo = :ativo)
+              AND LOCATE(LOWER(:nome), LOWER(t.nome)) > 0
             """)
+    Page<Turma> buscarPorNome(
+            @Param("nome") String nome,
+            @Param("ativo") Boolean ativo,
+            Pageable pageable
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM Turma t WHERE t.id = :id")
     Optional<Turma> buscarPorIdComBloqueio(@Param("id") UUID id);
 }

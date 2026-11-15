@@ -14,11 +14,15 @@ import com.crecheconecta.repository.DiarioRotinaRepository;
 import com.crecheconecta.repository.MatriculaTurmaRepository;
 import com.crecheconecta.repository.TurmaRepository;
 import com.crecheconecta.security.UsuarioAtual;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -27,13 +31,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Diário de Rotina Digital, lado do PROFESSOR: consulta a turma no dia, registra, edita e exclui o diário de cada aluno.
- * (O lado do pai, só leitura, está em {@link DiarioRotinaFilhoService}.)
- *
- * Regras: só o professor vinculado à turma; o aluno precisa ter matrícula atual na turma; a data nunca é futura;
- * só quem criou o diário edita ou exclui; edição simultânea é barrada pela "versao".
- */
 @Service
 @PreAuthorize("hasRole('PROFESSOR')")
 public class DiarioRotinaService {
@@ -46,7 +43,15 @@ public class DiarioRotinaService {
     private final MalaVirtualSuporte suporte;
     private final AuditoriaService auditoria;
 
-    public DiarioRotinaService(VinculoProfessorService vinculoProfessor, TurmaRepository turmas, MatriculaTurmaRepository matriculas, AlunoRepository alunos, DiarioRotinaRepository diarios, MalaVirtualSuporte suporte, AuditoriaService auditoria) {
+    public DiarioRotinaService(
+            VinculoProfessorService vinculoProfessor,
+            TurmaRepository turmas,
+            MatriculaTurmaRepository matriculas,
+            AlunoRepository alunos,
+            DiarioRotinaRepository diarios,
+            MalaVirtualSuporte suporte,
+            AuditoriaService auditoria
+    ) {
         this.vinculoProfessor = vinculoProfessor;
         this.turmas = turmas;
         this.matriculas = matriculas;
@@ -56,36 +61,60 @@ public class DiarioRotinaService {
         this.auditoria = auditoria;
     }
 
-    /** Todos os alunos da turma com o diário do dia (ou null, se ainda não preenchido). */
     @Transactional(readOnly = true)
     public List<DiarioAlunoResponse> consultar(UUID turmaId, LocalDate data, UsuarioAtual solicitante) {
-
-        vinculoProfessor.exigirProfessorDaTurma(turmaId, solicitante);
-        validarData(data);
-
-        var turma = turmas.findById(turmaId).orElseThrow(TurmaNaoEncontradaException::new);
-        if (!turma.isAtivo()) {
-            throw new RegraNegocioException("A turma está inativa.");
-        }
+        validarConsulta(turmaId, data, solicitante);
 
         Map<UUID, DiarioRotina> diariosPorAluno = diarios.findByTurmaIdAndData(turmaId, data)
                 .stream()
                 .collect(Collectors.toMap(DiarioRotina::getAlunoId, Function.identity()));
 
-        return matriculas.buscarAlunosAtuaisDaTurma(turmaId).stream().map(aluno -> {
-            var diario = diariosPorAluno.get(aluno.getId());
-            return new DiarioAlunoResponse(aluno.getId(), aluno.getNome(), diario == null ? null : DiarioRegistroResponse.de(diario, solicitante.id()));
-        }).toList();
+        return matriculas.buscarAlunosAtuaisDaTurma(turmaId).stream()
+                .map(aluno -> {
+                    var diario = diariosPorAluno.get(aluno.getId());
+                    var registro = diario == null ? null : DiarioRegistroResponse.de(diario, solicitante.id());
+                    return new DiarioAlunoResponse(aluno.getId(), aluno.getNome(), registro);
+                })
+                .toList();
     }
 
-    /** Cria o diário do aluno no dia (versao null) ou edita o que já existe (versao obrigatória). */
-    @Transactional
-    public DiarioRegistroResponse registrar(UUID turmaId, UUID alunoId, LocalDate data, RegistrarDiarioRequest request, UsuarioAtual solicitante) {
+    @Transactional(readOnly = true)
+    public Page<DiarioAlunoResponse> consultarPaginado(
+            UUID turmaId, LocalDate data, int pagina, UsuarioAtual solicitante
+    ) {
+        validarConsulta(turmaId, data, solicitante);
 
+        if (pagina < 0) {
+            throw new RegraNegocioException("Informe uma página a partir de zero.");
+        }
+
+        var paginacao = PageRequest.of(pagina, 20, Sort.by("nome", "id"));
+        var alunosDaPagina = matriculas.buscarAlunosAtuaisDaChamada(turmaId, paginacao);
+
+        if (alunosDaPagina.isEmpty()) {
+            return alunosDaPagina.map(aluno -> new DiarioAlunoResponse(aluno.getId(), aluno.getNome(), null));
+        }
+
+        var ids = alunosDaPagina.stream().map(aluno -> aluno.getId()).toList();
+        var diariosPorAluno = diarios.findByTurmaIdAndDataAndAlunoIdIn(turmaId, data, ids)
+                .stream()
+                .collect(Collectors.toMap(DiarioRotina::getAlunoId, Function.identity()));
+
+        return alunosDaPagina.map(aluno -> {
+            var diario = diariosPorAluno.get(aluno.getId());
+            var registro = diario == null ? null : DiarioRegistroResponse.de(diario, solicitante.id());
+            return new DiarioAlunoResponse(aluno.getId(), aluno.getNome(), registro);
+        });
+    }
+
+    @Transactional
+    public DiarioRegistroResponse registrar(
+            UUID turmaId, UUID alunoId, LocalDate data,
+            RegistrarDiarioRequest request, UsuarioAtual solicitante
+    ) {
         vinculoProfessor.exigirProfessorDaTurma(turmaId, solicitante);
         validarData(data);
 
-        // Trava a linha da turma até o fim da transação: dois professores salvando o mesmo aluno ao mesmo tempo não furam o UNIQUE.
         var turma = turmas.buscarPorIdComBloqueio(turmaId).orElseThrow(TurmaNaoEncontradaException::new);
         if (!turma.isAtivo()) {
             throw new RegraNegocioException("A turma está inativa.");
@@ -106,15 +135,17 @@ public class DiarioRotinaService {
             if (request.versao() != null) {
                 throw new ConflitoVersaoException();
             }
+
             diario = new DiarioRotina();
             diario.setAlunoId(alunoId);
             diario.setTurmaId(turmaId);
             diario.setProfessorId(solicitante.id());
             diario.setData(data);
-            diario.setCriadoEm(java.time.Instant.now());
+            diario.setCriadoEm(Instant.now());
         } else {
             exigirDiarioDaTurma(diario, turmaId);
             exigirAutor(diario, solicitante);
+
             if (request.versao() == null || !Objects.equals(diario.getVersao(), request.versao())) {
                 throw new ConflitoVersaoException();
             }
@@ -127,30 +158,42 @@ public class DiarioRotinaService {
         diario.setHigiene(request.higiene());
         diario.setObservacaoProfessor(MalaVirtualSuporte.textoOpcional(request.observacaoProfessor()));
 
-        // saveAndFlush: o @Version só incrementa no flush; sem ele a resposta devolveria a versão antiga.
+        // O flush garante que a resposta tenha a versão atualizada do registro.
         diarios.saveAndFlush(diario);
+        auditoria.aposCommit(
+                novo ? "DIARIO_ROTINA_REGISTRADO" : "DIARIO_ROTINA_EDITADO",
+                solicitante.id(),
+                diario.getId()
+        );
 
-        auditoria.aposCommit(novo ? "DIARIO_ROTINA_REGISTRADO" : "DIARIO_ROTINA_EDITADO", solicitante.id(), diario.getId());
         return DiarioRegistroResponse.de(diario, solicitante.id());
     }
 
     @Transactional
     public void excluir(UUID turmaId, UUID alunoId, LocalDate data, UsuarioAtual solicitante) {
-
         vinculoProfessor.exigirProfessorDaTurma(turmaId, solicitante);
         validarData(data);
 
-        var diario = diarios.findByAlunoIdAndData(alunoId, data).orElseThrow(DiarioRotinaNaoEncontradoException::new);
+        var diario = diarios.findByAlunoIdAndData(alunoId, data)
+                .orElseThrow(DiarioRotinaNaoEncontradoException::new);
         exigirDiarioDaTurma(diario, turmaId);
         exigirAutor(diario, solicitante);
 
         diarios.delete(diario);
         diarios.flush();
-
         auditoria.aposCommit("DIARIO_ROTINA_EXCLUIDO", solicitante.id(), diario.getId());
     }
 
-    // Um diário de outra turma não pode ser tocado pela URL desta turma (e não revelamos que ele existe).
+    private void validarConsulta(UUID turmaId, LocalDate data, UsuarioAtual solicitante) {
+        vinculoProfessor.exigirProfessorDaTurma(turmaId, solicitante);
+        validarData(data);
+
+        var turma = turmas.findById(turmaId).orElseThrow(TurmaNaoEncontradaException::new);
+        if (!turma.isAtivo()) {
+            throw new RegraNegocioException("A turma está inativa.");
+        }
+    }
+
     private void exigirDiarioDaTurma(DiarioRotina diario, UUID turmaId) {
         if (!diario.getTurmaId().equals(turmaId)) {
             throw new DiarioRotinaNaoEncontradoException();

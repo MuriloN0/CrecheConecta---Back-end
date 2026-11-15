@@ -8,6 +8,8 @@ import com.crecheconecta.entity.Turma;
 import com.crecheconecta.exception.ConflitoVersaoException;
 import com.crecheconecta.exception.RegraNegocioException;
 import com.crecheconecta.exception.TurmaNaoEncontradaException;
+import com.crecheconecta.repository.MatriculaTurmaRepository;
+import com.crecheconecta.repository.TurmaProfessorRepository;
 import com.crecheconecta.repository.TurmaRepository;
 import com.crecheconecta.repository.UsuarioRepository;
 import com.crecheconecta.security.UsuarioAtual;
@@ -18,10 +20,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.crecheconecta.repository.MatriculaTurmaRepository;
-import java.time.Clock;
-import com.crecheconecta.repository.TurmaProfessorRepository;
 
+import java.time.Clock;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -36,8 +36,14 @@ public class TurmaService {
     private final Clock clock;
     private final TurmaProfessorRepository professoresTurma;
 
-    public TurmaService(TurmaRepository turmas, UsuarioRepository usuarios, AuditoriaService auditoria, MatriculaTurmaRepository matriculas, Clock clock, TurmaProfessorRepository professoresTurma) {
-
+    public TurmaService(
+            TurmaRepository turmas,
+            UsuarioRepository usuarios,
+            AuditoriaService auditoria,
+            MatriculaTurmaRepository matriculas,
+            Clock clock,
+            TurmaProfessorRepository professoresTurma
+    ) {
         this.turmas = turmas;
         this.usuarios = usuarios;
         this.auditoria = auditoria;
@@ -48,9 +54,7 @@ public class TurmaService {
 
     @Transactional
     public TurmaResponse cadastrar(CadastrarTurmaRequest request, UsuarioAtual solicitante) {
-
         validarDirecao(solicitante);
-
 
         var turma = new Turma();
         turma.setNome(normalizarTexto(request.nome(), "nome", 150));
@@ -58,48 +62,57 @@ public class TurmaService {
         turma.setAtivo(true);
 
         turmas.saveAndFlush(turma);
-
         auditoria.aposCommit("TURMA_CADASTRADA", solicitante.id(), turma.getId());
 
         return TurmaResponse.de(turma);
     }
 
     @Transactional(readOnly = true)
-    public Page<TurmaResponse> listar(int pagina, int tamanho, Boolean ativo, UsuarioAtual solicitante) {
+    public Page<TurmaResponse> listar(
+            int pagina, int tamanho, Boolean ativo, UsuarioAtual solicitante
+    ) {
+        return listar(pagina, tamanho, ativo, null, solicitante);
+    }
 
+    @Transactional(readOnly = true)
+    public Page<TurmaResponse> listar(
+            int pagina, int tamanho, Boolean ativo, String nome, UsuarioAtual solicitante
+    ) {
         validarDirecao(solicitante);
 
         if (pagina < 0 || tamanho < 1 || tamanho > 100) {
-
-            throw new RegraNegocioException("Informe página a partir de zero " + "e tamanho entre 1 e 100.");
+            throw new RegraNegocioException("Informe página a partir de zero e tamanho entre 1 e 100.");
         }
 
-        var paginacao = PageRequest.of(pagina, tamanho, Sort.by("nome").ascending().and(Sort.by("id").ascending()));
+        var paginacao = PageRequest.of(pagina, tamanho, Sort.by("nome", "id"));
+        String busca = nome == null ? "" : nome.strip();
 
-        Page<Turma> resultado;
-
-        if (ativo == null) {
-            resultado = turmas.findAll(paginacao);
-        } else {
-            resultado = turmas.findByAtivo(ativo, paginacao);
+        if (busca.length() > 150) {
+            throw new RegraNegocioException("Busque por um nome com até 150 caracteres.");
         }
+
+        if (!busca.isEmpty()) {
+            return turmas.buscarPorNome(busca, ativo, paginacao).map(TurmaResponse::de);
+        }
+
+        var resultado = ativo == null
+                ? turmas.findAll(paginacao)
+                : turmas.findByAtivo(ativo, paginacao);
 
         return resultado.map(TurmaResponse::de);
     }
 
     @Transactional(readOnly = true)
     public TurmaResponse visualizar(UUID turmaId, UsuarioAtual solicitante) {
-
         validarDirecao(solicitante);
-
         var turma = turmas.findById(turmaId).orElseThrow(TurmaNaoEncontradaException::new);
-
         return TurmaResponse.de(turma);
     }
 
     @Transactional
-    public TurmaResponse atualizar(UUID turmaId, AtualizarTurmaRequest request, UsuarioAtual solicitante) {
-
+    public TurmaResponse atualizar(
+            UUID turmaId, AtualizarTurmaRequest request, UsuarioAtual solicitante
+    ) {
         validarDirecao(solicitante);
 
         var turma = buscarComBloqueio(turmaId, request.versao());
@@ -111,7 +124,6 @@ public class TurmaService {
         turma.setNumeroSala(normalizarTexto(request.numeroSala(), "número da sala", 20));
 
         turmas.flush();
-
         auditoria.aposCommit("TURMA_ATUALIZADA", solicitante.id(), turma.getId());
 
         return TurmaResponse.de(turma);
@@ -119,36 +131,29 @@ public class TurmaService {
 
     @Transactional
     public TurmaResponse inativar(UUID turmaId, Long versao, UsuarioAtual solicitante) {
-
         validarDirecao(solicitante);
 
         var turma = buscarComBloqueio(turmaId, versao);
-
         if (!turma.isAtivo()) {
-
             throw new RegraNegocioException("A turma já está inativa.");
         }
 
         var agora = clock.instant();
-
         turma.setAtivo(false);
-
         matriculas.encerrarDaTurma(turmaId, agora);
         professoresTurma.encerrarDaTurma(turmaId, agora);
 
         turmas.flush();
-
         auditoria.aposCommit("TURMA_INATIVADA", solicitante.id(), turma.getId());
 
         return TurmaResponse.de(turma);
     }
 
     private Turma buscarComBloqueio(UUID turmaId, Long versao) {
-
-        var turma = turmas.buscarPorIdComBloqueio(turmaId).orElseThrow(TurmaNaoEncontradaException::new);
+        var turma = turmas.buscarPorIdComBloqueio(turmaId)
+                .orElseThrow(TurmaNaoEncontradaException::new);
 
         if (versao == null || !Objects.equals(turma.getVersao(), versao)) {
-
             throw new ConflitoVersaoException();
         }
 
@@ -156,38 +161,32 @@ public class TurmaService {
     }
 
     private String normalizarTexto(String valor, String campo, int limite) {
-
         if (valor == null || valor.isBlank()) {
-
             throw new RegraNegocioException("Informe o campo " + campo + ".");
         }
 
         String normalizado = valor.strip();
-
         if (normalizado.length() > limite) {
-
-            throw new RegraNegocioException("O campo " + campo + " deve possuir no máximo " + limite + " caracteres.");
+            throw new RegraNegocioException(
+                    "O campo " + campo + " deve possuir no máximo " + limite + " caracteres."
+            );
         }
 
         return normalizado;
     }
 
     private void validarDirecao(UsuarioAtual solicitante) {
-
         if (solicitante == null || solicitante.perfil() != Perfil.DIRECAO) {
             throw acessoNegado();
         }
 
         var diretor = usuarios.findById(solicitante.id()).orElseThrow(this::acessoNegado);
-
         if (!diretor.isAtivo() || diretor.getPerfil() != Perfil.DIRECAO) {
-
             throw acessoNegado();
         }
     }
 
     private AccessDeniedException acessoNegado() {
-
         return new AccessDeniedException("Acesso restrito à direção.");
     }
 }

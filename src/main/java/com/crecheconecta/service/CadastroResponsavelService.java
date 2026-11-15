@@ -21,13 +21,15 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.TemporalAdjusters;
 import java.util.UUID;
 
 @Service
 public class CadastroResponsavelService {
 
     private static final ZoneId FUSO_CRECHE = ZoneId.of("America/Sao_Paulo");
-    private static final LocalDate DATA_NASCIMENTO_MINIMA = LocalDate.of(1900, 1, 1);
+    private static final int IDADE_MINIMA_MESES = 6;
+    private static final int IDADE_MAXIMA_ANOS = 4;
 
     private final ConviteCadastroRepository convites;
     private final UsuarioRepository usuarios;
@@ -56,7 +58,8 @@ public class CadastroResponsavelService {
     public DadosConviteResponsavel consultar(String token) {
 
         var convite = buscarDisponivel(token);
-        return new DadosConviteResponsavel(convite.getNome(), convite.getEmail(), convite.getExpiraEm(), termos.documentosCadastro());
+
+        return new DadosConviteResponsavel(convite.getNome(), convite.getEmail(), convite.getExpiraEm(), termos.documentosCadastro(), faixaNascimento());
     }
 
     @Transactional
@@ -65,21 +68,31 @@ public class CadastroResponsavelService {
         var convite = buscarDisponivel(request.token());
 
         if (usuarios.existsByEmail(convite.getEmail())) {
-
             throw new RegraNegocioException("Não foi possível concluir este convite.");
         }
 
         if (request.senha().getBytes(StandardCharsets.UTF_8).length > 72) {
-
             throw new RegraNegocioException("A senha deve possuir no máximo 72 bytes.");
         }
 
         LocalDate dataNascimento = request.dataNascimento();
-        LocalDate hoje = LocalDate.now(clock.withZone(FUSO_CRECHE));
+        var faixa = faixaNascimento();
 
-        if (dataNascimento == null || dataNascimento.isBefore(DATA_NASCIMENTO_MINIMA) || dataNascimento.isAfter(hoje)) {
+        if (dataNascimento == null) {
 
-            throw new RegraNegocioException("Informe uma data de nascimento válida até hoje.");
+            throw new RegraNegocioException("Informe a data de nascimento do aluno.");
+        }
+
+        if (dataNascimento.isBefore(faixa.dataMinima())) {
+
+            throw new RegraNegocioException(
+                    "O aluno deve ter no máximo 4 anos pelo ano de nascimento."
+            );
+        }
+
+        if (dataNascimento.isAfter(faixa.dataMaxima())) {
+
+            throw new RegraNegocioException("O aluno deve ter pelo menos 6 meses completos.");
         }
 
         if (!Boolean.TRUE.equals(request.aceitouDocumentos())) {
@@ -124,6 +137,19 @@ public class CadastroResponsavelService {
         return new CadastroResponsavelResultado(responsavel.getId(), aluno.getId(), "Cadastro concluído. Você já pode entrar.");
     }
 
+    private FaixaNascimento faixaNascimento() {
+
+        var hoje = LocalDate.now(clock.withZone(FUSO_CRECHE));
+        var dataMinima = LocalDate.of(hoje.getYear() - IDADE_MAXIMA_ANOS, 1, 1);
+        var dataMaxima = hoje.minusMonths(IDADE_MINIMA_MESES);
+
+        if (hoje.getDayOfMonth() == hoje.lengthOfMonth()) {
+            dataMaxima = dataMaxima.with(TemporalAdjusters.lastDayOfMonth());
+        }
+
+        return new FaixaNascimento(dataMinima, dataMaxima);
+    }
+
     private ConviteCadastro buscarDisponivel(String token) {
 
         if (token == null || !token.matches("[A-Za-z0-9_-]{43}")) {
@@ -131,7 +157,8 @@ public class CadastroResponsavelService {
             throw conviteInvalido();
         }
 
-        var convite = convites.buscarPorTokenHashComBloqueio(tokens.calcularHash(token)).orElseThrow(this::conviteInvalido);
+        var convite = convites.buscarPorTokenHashComBloqueio(tokens.calcularHash(token))
+                .orElseThrow(this::conviteInvalido);
 
         if (convite.getPerfil() != Perfil.RESPONSAVEL || !convite.estaDisponivel(clock.instant())) {
 
@@ -146,9 +173,15 @@ public class CadastroResponsavelService {
         return new RegraNegocioException("Convite inválido, expirado, cancelado ou já utilizado.");
     }
 
-    public record DadosConviteResponsavel(String nome, String email, Instant expiraEm, TermoService.DocumentosCadastro documentos) {
+    public record DadosConviteResponsavel(String nome, String email, Instant expiraEm, TermoService.DocumentosCadastro documentos, FaixaNascimento faixaNascimento) {
 
     }
 
-    public record CadastroResponsavelResultado(UUID usuarioId, UUID alunoId, String mensagem) {}
+    public record FaixaNascimento(LocalDate dataMinima, LocalDate dataMaxima) {
+
+    }
+
+    public record CadastroResponsavelResultado(UUID usuarioId, UUID alunoId, String mensagem) {
+
+    }
 }

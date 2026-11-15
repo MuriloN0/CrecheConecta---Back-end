@@ -27,20 +27,16 @@ public class AlunoController {
         this.alunos = alunos;
     }
 
-
     @GetMapping
-    public ResponseEntity<Page<AlunoResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(required = false) Boolean ativo, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<AlunoResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(required = false) Boolean ativo, @RequestParam(required = false) String nome, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
-        var resposta = alunos.listar(pagina, tamanho, ativo, UsuarioAtual.de(autenticado));
-
+        var resposta = alunos.listar(pagina, tamanho, ativo, nome, UsuarioAtual.de(autenticado));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
     @GetMapping("/disponiveis")
-    public ResponseEntity<Page<AlunoResponse>> listarDisponiveis(
-            @RequestParam(defaultValue = "0") int pagina,
-            @RequestParam(defaultValue = "20") int tamanho,
-            @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<AlunoResponse>> listarDisponiveis(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(alunos.listarDisponiveis(pagina, tamanho, UsuarioAtual.de(autenticado)));
     }
@@ -49,10 +45,8 @@ public class AlunoController {
     public ResponseEntity<AlunoResponse> visualizar(@PathVariable UUID alunoId, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = alunos.visualizar(alunoId, UsuarioAtual.de(autenticado));
-
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
-
 
     @PostMapping("/{alunoId}/inativar")
     public ResponseEntity<AlunoResponse> inativar(@PathVariable UUID alunoId, @Valid @RequestBody InativarAlunoRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
