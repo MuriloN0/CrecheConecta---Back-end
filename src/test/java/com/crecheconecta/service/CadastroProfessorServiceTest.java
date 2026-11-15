@@ -64,7 +64,7 @@ class CadastroProfessorServiceTest {
     }
 
     @Test
-    void deveCadastrarProfessorInativoEPendenteComSenhaCodificada() {
+    void deveCadastrarProfessorAtivoEAprovadoComSenhaCodificada() {
         prepararBusca();
 
         when(encoder.encode(SENHA)).thenReturn("senha-codificada");
@@ -91,11 +91,11 @@ class CadastroProfessorServiceTest {
         assertEquals("senha-codificada", salvo.getSenhaHash());
 
         assertEquals(
-                SituacaoCadastro.PENDENTE_APROVACAO,
+                SituacaoCadastro.APROVADO,
                 salvo.getSituacaoCadastro()
         );
 
-        assertFalse(salvo.isAtivo());
+        assertTrue(salvo.isAtivo());
         assertNotNull(convite.getConsumidoEm());
 
         verify(convites).flush();
