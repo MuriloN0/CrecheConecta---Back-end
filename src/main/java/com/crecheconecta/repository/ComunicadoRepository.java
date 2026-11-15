@@ -16,6 +16,10 @@ public interface ComunicadoRepository extends JpaRepository<Comunicado, UUID> {
 
     Page<Comunicado> findByAtivoTrue(Pageable pageable);
 
+    Page<Comunicado> findByAtivoTrueAndTituloContainingIgnoreCase(
+            String titulo, Pageable pageable
+    );
+
     Optional<Comunicado> findByIdAndAtivoTrue(UUID id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

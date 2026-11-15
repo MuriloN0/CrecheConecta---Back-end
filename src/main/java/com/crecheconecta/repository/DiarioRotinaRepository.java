@@ -10,12 +10,11 @@ import java.util.UUID;
 
 public interface DiarioRotinaRepository extends JpaRepository<DiarioRotina, UUID> {
 
-    // Diário de um dia específico (no máximo 1, garantido por uk_diarios_aluno_data).
     Optional<DiarioRotina> findByAlunoIdAndData(UUID alunoId, LocalDate data);
 
-    // Diários de uma turma num dia (tela do professor).
     List<DiarioRotina> findByTurmaIdAndData(UUID turmaId, LocalDate data);
 
-    // Diário mais recente do aluno.
+    List<DiarioRotina> findByTurmaIdAndDataAndAlunoIdIn(UUID turmaId, LocalDate data, List<UUID> alunos);
+
     Optional<DiarioRotina> findFirstByAlunoIdOrderByDataDesc(UUID alunoId);
 }

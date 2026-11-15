@@ -1,6 +1,9 @@
 package com.crecheconecta.controller;
 
-import com.crecheconecta.dto.*;
+import com.crecheconecta.dto.AtualizarComunicadoRequest;
+import com.crecheconecta.dto.ComunicadoResponse;
+import com.crecheconecta.dto.CriarComunicadoRequest;
+import com.crecheconecta.dto.InativarComunicadoRequest;
 import com.crecheconecta.security.UsuarioAtual;
 import com.crecheconecta.security.UsuarioAutenticado;
 import com.crecheconecta.service.ComunicadoService;
@@ -30,14 +33,15 @@ public class ComunicadoController {
 
         var resposta = comunicados.criar(request, UsuarioAtual.de(autenticado));
 
-        return ResponseEntity.created(URI.create("/api/comunicados/" + resposta.id())).cacheControl(CacheControl.noStore()).body(resposta);
+        return ResponseEntity.created(URI.create("/api/comunicados/" + resposta.id()))
+                .cacheControl(CacheControl.noStore())
+                .body(resposta);
     }
 
     @GetMapping
-    public ResponseEntity<Page<ComunicadoResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<ComunicadoResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(defaultValue = "") String busca, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
-        var resposta = comunicados.listar(pagina, tamanho, UsuarioAtual.de(autenticado));
-
+        var resposta = comunicados.listar(pagina, tamanho, busca, UsuarioAtual.de(autenticado));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
@@ -45,7 +49,6 @@ public class ComunicadoController {
     public ResponseEntity<ComunicadoResponse> visualizar(@PathVariable UUID id, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = comunicados.visualizar(id, UsuarioAtual.de(autenticado));
-
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
@@ -53,7 +56,6 @@ public class ComunicadoController {
     public ResponseEntity<ComunicadoResponse> atualizar(@PathVariable UUID id, @Valid @RequestBody AtualizarComunicadoRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = comunicados.atualizar(id, request, UsuarioAtual.de(autenticado));
-
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
@@ -61,7 +63,6 @@ public class ComunicadoController {
     public ResponseEntity<ComunicadoResponse> inativar(@PathVariable UUID id, @Valid @RequestBody InativarComunicadoRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = comunicados.inativar(id, request.versao(), UsuarioAtual.de(autenticado));
-
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 }

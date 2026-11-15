@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -28,18 +29,31 @@ public class MalaVirtualFilhoController {
     private final MalaVirtualFilhoService malaVirtual;
 
     public MalaVirtualFilhoController(MalaVirtualFilhoService malaVirtual) {
+
         this.malaVirtual = malaVirtual;
     }
 
-    @GetMapping
+    @GetMapping(params = "!pagina")
     public ResponseEntity<List<MalaVirtualResponse>> listar(@PathVariable UUID alunoId, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+
         var resposta = malaVirtual.listar(alunoId, UsuarioAtual.de(autenticado));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
+    @GetMapping(params = "pagina")
+    public ResponseEntity<PaginaMalas> listarPaginado(@PathVariable UUID alunoId, @RequestParam int pagina, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+
+        var resultado = malaVirtual.listarPaginado(alunoId, pagina, UsuarioAtual.de(autenticado));
+
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new PaginaMalas(resultado.getContent(), resultado.getTotalPages()));
+    }
+
     @PutMapping("/{malaId}/itens/{itemId}")
     public ResponseEntity<MalaVirtualResponse> marcarItem(@PathVariable UUID alunoId, @PathVariable UUID malaId, @PathVariable UUID itemId, @Valid @RequestBody MarcarItemMalaRequest request, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+
         var resposta = malaVirtual.marcarItem(alunoId, malaId, itemId, request, UsuarioAtual.de(autenticado));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
+
+    public record PaginaMalas(List<MalaVirtualResponse> content, int totalPages) {}
 }
