@@ -35,10 +35,15 @@ public class AlunoController {
     }
 
     @GetMapping("/disponiveis")
-    public ResponseEntity<Page<AlunoResponse>> listarDisponiveis(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<AlunoResponse>> listarDisponiveis(
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "20") int tamanho,
+            @RequestParam(required = false) String nome,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado
+    ) {
 
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-                .body(alunos.listarDisponiveis(pagina, tamanho, UsuarioAtual.de(autenticado)));
+                .body(alunos.listarDisponiveis(pagina, tamanho, nome, UsuarioAtual.de(autenticado)));
     }
 
     @GetMapping("/{alunoId}")

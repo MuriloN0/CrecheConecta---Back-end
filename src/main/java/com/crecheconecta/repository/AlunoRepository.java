@@ -29,12 +29,14 @@ public interface AlunoRepository extends JpaRepository<Aluno, UUID> {
 
     @Query("""
             SELECT a FROM Aluno a
-            WHERE a.ativo = true AND NOT EXISTS (
-                SELECT m.id FROM MatriculaTurma m
-                WHERE m.alunoId = a.id AND m.encerradoEm IS NULL
-            )
+            WHERE a.ativo = true
+              AND (:nome = '' OR LOCATE(LOWER(:nome), LOWER(a.nome)) > 0)
+              AND NOT EXISTS (
+                  SELECT m.id FROM MatriculaTurma m
+                  WHERE m.alunoId = a.id AND m.encerradoEm IS NULL
+              )
             """)
-    Page<Aluno> listarDisponiveis(Pageable pageable);
+    Page<Aluno> listarDisponiveis(@Param("nome") String nome, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Aluno a WHERE a.id = :id")

@@ -41,6 +41,9 @@ public class ConviteCadastro {
     @Column(name = "expira_em", nullable = false)
     private Instant expiraEm;
 
+    @Column(name = "cadastro_expira_em")
+    private Instant cadastroExpiraEm;
+
     @Column(name = "consumido_em")
     private Instant consumidoEm;
 
@@ -52,8 +55,7 @@ public class ConviteCadastro {
     private Long versao;
 
     public boolean estaDisponivel(Instant agora) {
-
-        return consumidoEm == null && canceladoEm == null && expiraEm != null && expiraEm.isAfter(agora);
-
+        return consumidoEm == null && canceladoEm == null
+                && expiraEm != null && expiraEm.isAfter(agora);
     }
 }

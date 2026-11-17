@@ -20,7 +20,7 @@ public class Aluno {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, length = 150)
+    @Column(nullable = false, length = 100)
     private String nome;
 
     @Column(name = "data_nascimento")
@@ -41,7 +41,6 @@ public class Aluno {
     @Column(nullable = false)
     private Long versao;
 
-    /** Preenchido quando os dados pessoais foram anonimizados (LGPD). */
     @Column(name = "anonimizado_em")
     private Instant anonimizadoEm;
 }

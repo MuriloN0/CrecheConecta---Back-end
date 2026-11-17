@@ -23,6 +23,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
@@ -31,17 +32,6 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * LGPD: anonimização dos dados quando a criança sai da creche (aluno já inativo).
- * Feita pela direção, numa única transação: ou tudo é anonimizado, ou nada muda.
- *
- * Apagado: informações relevantes (dado de saúde), observações dos professores, mensagens do chat
- * e notificações do responsável, textos livres do diário e da mala.
- * Substituído: nome e data de nascimento do aluno (fica só o ano) e nome, e-mail, telefone e senha
- * do responsável (a conta é inativada e as sessões revogadas). Os convites com o e-mail dele também.
- * Mantido sem identificação: frequência, matrícula, opções do diário, aceites dos termos (prova do
- * consentimento) e auditoria (só guarda IDs).
- */
 @Service
 public class AnonimizacaoService {
 
@@ -62,7 +52,21 @@ public class AnonimizacaoService {
     private final AuditoriaService auditoria;
     private final Clock clock;
 
-    public AnonimizacaoService(AlunoRepository alunos, AlunoResponsavelRepository vinculos, UsuarioRepository usuarios, InformacaoRelevanteRepository informacoes, ObservacaoRepository observacoes, DiarioRotinaRepository diarios, MarcacaoItemMalaRepository marcacoes, ConviteCadastroRepository convites, SessaoRepository sessoes, NamedParameterJdbcTemplate jdbc, PasswordEncoder encoder, AuditoriaService auditoria, Clock clock) {
+    public AnonimizacaoService(
+            AlunoRepository alunos,
+            AlunoResponsavelRepository vinculos,
+            UsuarioRepository usuarios,
+            InformacaoRelevanteRepository informacoes,
+            ObservacaoRepository observacoes,
+            DiarioRotinaRepository diarios,
+            MarcacaoItemMalaRepository marcacoes,
+            ConviteCadastroRepository convites,
+            SessaoRepository sessoes,
+            NamedParameterJdbcTemplate jdbc,
+            PasswordEncoder encoder,
+            AuditoriaService auditoria,
+            Clock clock
+    ) {
         this.alunos = alunos;
         this.vinculos = vinculos;
         this.usuarios = usuarios;
@@ -92,7 +96,6 @@ public class AnonimizacaoService {
 
         Instant agora = clock.instant();
 
-        // 1. Dados sobre a criança: o que é texto livre ou de saúde sai; o resto fica sem identificação.
         var informacoesDoAluno = informacoes.findByAlunoId(alunoId);
         informacoes.deleteAll(informacoesDoAluno);
         var observacoesDoAluno = observacoes.findByAlunoIdOrderByDataCriacaoDesc(alunoId);
@@ -100,7 +103,6 @@ public class AnonimizacaoService {
         diarios.apagarObservacoesDoAluno(alunoId);
         marcacoes.apagarObservacoesDoAluno(alunoId);
 
-        // 2. Vínculos: encerra os atuais e junta todos os responsáveis que o aluno já teve.
         Set<UUID> responsaveis = new LinkedHashSet<>();
         for (AlunoResponsavel vinculo : vinculos.findByAlunoId(alunoId)) {
             responsaveis.add(vinculo.getResponsavelId());
@@ -110,15 +112,14 @@ public class AnonimizacaoService {
         }
         vinculos.flush();
 
-        // 3. Responsáveis: só quem não tem mais nenhuma criança vinculada na creche.
         int responsaveisAnonimizados = 0;
         for (UUID responsavelId : responsaveis) {
-            if (!vinculos.existsByResponsavelIdAndEncerradoEmIsNull(responsavelId) && anonimizarResponsavel(responsavelId, agora)) {
+            if (!vinculos.existsByResponsavelIdAndEncerradoEmIsNull(responsavelId)
+                    && anonimizarResponsavel(responsavelId, agora)) {
                 responsaveisAnonimizados++;
             }
         }
 
-        // 4. Aluno: nome genérico e só o ano de nascimento (a V29 permite data nula com o ano).
         Integer ano = aluno.getAnoNascimento();
         aluno.setNome(NOME_ALUNO);
         aluno.setDataNascimento(null);
@@ -127,19 +128,43 @@ public class AnonimizacaoService {
         alunos.saveAndFlush(aluno);
 
         auditoria.aposCommit("ALUNO_ANONIMIZADO", solicitante.id(), alunoId);
-        return new AnonimizacaoResponse(alunoId, responsaveisAnonimizados, informacoesDoAluno.size(), observacoesDoAluno.size());
+        return new AnonimizacaoResponse(
+                alunoId, responsaveisAnonimizados, informacoesDoAluno.size(), observacoesDoAluno.size()
+        );
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void anonimizarPropriaConta(UsuarioAtual solicitante) {
+        if (solicitante == null || solicitante.perfil() != Perfil.RESPONSAVEL) {
+            throw new AccessDeniedException("Esta operação é restrita ao responsável.");
+        }
+
+        var responsavel = usuarios.buscarPorIdComBloqueio(solicitante.id()).orElse(null);
+        if (responsavel == null || !responsavel.isAtivo()
+                || responsavel.getPerfil() != Perfil.RESPONSAVEL
+                || responsavel.getAnonimizadoEm() != null) {
+            throw new AccessDeniedException("Esta conta não está disponível para anonimização.");
+        }
+
+        Instant agora = clock.instant();
+        for (var vinculo : vinculos.findByResponsavelIdAndEncerradoEmIsNull(responsavel.getId())) {
+            vinculo.setEncerradoEm(agora);
+        }
+        vinculos.flush();
+
+        anonimizarResponsavel(responsavel.getId(), agora);
     }
 
     private boolean anonimizarResponsavel(UUID responsavelId, Instant agora) {
         Usuario responsavel = usuarios.findById(responsavelId).orElse(null);
-        if (responsavel == null || responsavel.getPerfil() != Perfil.RESPONSAVEL || responsavel.getAnonimizadoEm() != null) {
+        if (responsavel == null || responsavel.getPerfil() != Perfil.RESPONSAVEL
+                || responsavel.getAnonimizadoEm() != null) {
             return false;
         }
 
         String emailAnterior = responsavel.getEmail();
         String emailAnonimo = "anonimizado-" + responsavel.getId() + "@anonimizado.invalid";
 
-        // O e-mail é único no banco: um valor fictício por usuário, que não recebe e-mail.
         responsavel.setNome(NOME_RESPONSAVEL);
         responsavel.setEmail(emailAnonimo);
         responsavel.setTelefone(null);
@@ -165,20 +190,23 @@ public class AnonimizacaoService {
         return true;
     }
 
-    /**
-     * Chat e notificações são gravados por JDBC (sem entidade). No banco dos testes (H2, sem Flyway)
-     * essas tabelas não existem, por isso a verificação antes de apagar.
-     */
     private void apagarConversasENotificacoes(UUID usuarioId) {
         var parametros = new MapSqlParameterSource("usuario", usuarioId);
 
         if (tabelaExiste("chat_mensagens") && tabelaExiste("chat_conversas")) {
             jdbc.update("""
                     DELETE FROM chat_mensagens
-                    WHERE conversa_id IN (SELECT id FROM chat_conversas WHERE participante_a = :usuario OR participante_b = :usuario)
+                    WHERE conversa_id IN (
+                        SELECT id FROM chat_conversas
+                        WHERE participante_a = :usuario OR participante_b = :usuario
+                    )
                     """, parametros);
-            jdbc.update("DELETE FROM chat_conversas WHERE participante_a = :usuario OR participante_b = :usuario", parametros);
+            jdbc.update("""
+                    DELETE FROM chat_conversas
+                    WHERE participante_a = :usuario OR participante_b = :usuario
+                    """, parametros);
         }
+
         if (tabelaExiste("notificacoes_comunicado")) {
             jdbc.update("DELETE FROM notificacoes_comunicado WHERE usuario_id = :usuario", parametros);
         }
@@ -188,7 +216,8 @@ public class AnonimizacaoService {
         Integer total = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM information_schema.tables WHERE LOWER(table_name) = :tabela",
                 new MapSqlParameterSource("tabela", tabela),
-                Integer.class);
+                Integer.class
+        );
         return total != null && total > 0;
     }
 
@@ -196,8 +225,10 @@ public class AnonimizacaoService {
         if (solicitante == null || solicitante.id() == null || solicitante.perfil() != Perfil.DIRECAO) {
             throw acessoNegado();
         }
+
         usuarios.findById(solicitante.id())
-                .filter(usuario -> usuario.isAtivo() && usuario.getPerfil() == Perfil.DIRECAO && usuario.getSituacaoCadastro() == SituacaoCadastro.APROVADO)
+                .filter(usuario -> usuario.isAtivo() && usuario.getPerfil() == Perfil.DIRECAO
+                        && usuario.getSituacaoCadastro() == SituacaoCadastro.APROVADO)
                 .orElseThrow(this::acessoNegado);
     }
 
