@@ -99,6 +99,27 @@ public class ProfessorService {
     }
 
     @Transactional(readOnly = true)
+    public Page<ProfessorResponse> listarDisponiveis(
+            UUID turmaId, int pagina, int tamanho, String nome, UsuarioAtual solicitante
+    ) {
+        validarDirecao(solicitante);
+
+        if (pagina < 0 || tamanho < 1 || tamanho > 100) {
+            throw new RegraNegocioException("Informe página a partir de zero e tamanho entre 1 e 100.");
+        }
+
+        String termo = nome.strip();
+        if (termo.length() > 150) {
+            throw new RegraNegocioException("Busque por um nome com até 150 caracteres.");
+        }
+
+        var paginacao = PageRequest.of(pagina, tamanho, Sort.by("nome", "id"));
+        return usuarios.listarProfessoresDisponiveis(
+                Perfil.PROFESSOR, SituacaoCadastro.APROVADO, turmaId, termo, paginacao
+        ).map(ProfessorResponse::de);
+    }
+
+    @Transactional(readOnly = true)
     public ProfessorResponse visualizar(UUID professorId, UsuarioAtual solicitante) {
         validarDirecao(solicitante);
 
