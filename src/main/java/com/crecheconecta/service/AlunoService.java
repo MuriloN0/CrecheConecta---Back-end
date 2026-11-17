@@ -78,12 +78,7 @@ public class AlunoService {
         }
 
         var paginacao = PageRequest.of(pagina, tamanho, Sort.by("nome", "id"));
-        String busca = nome == null ? "" : nome.strip();
-
-        if (busca.length() > 150) {
-
-            throw new RegraNegocioException("Busque por um nome com até 150 caracteres.");
-        }
+        String busca = normalizarBuscaPorNome(nome);
 
         if (!busca.isEmpty()) {
             return alunos.buscarPorNome(busca, ativo, paginacao).map(AlunoResponse::de);
@@ -137,7 +132,7 @@ public class AlunoService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AlunoResponse> listarDisponiveis(int pagina, int tamanho, UsuarioAtual solicitante) {
+    public Page<AlunoResponse> listarDisponiveis(int pagina, int tamanho, String nome, UsuarioAtual solicitante) {
 
         validarDirecao(solicitante);
 
@@ -145,7 +140,18 @@ public class AlunoService {
             throw new RegraNegocioException("Informe página a partir de zero e tamanho entre 1 e 100.");
         }
 
-        return alunos.listarDisponiveis(PageRequest.of(pagina, tamanho, Sort.by("nome", "id"))).map(AlunoResponse::de);
+        var paginacao = PageRequest.of(pagina, tamanho, Sort.by("nome", "id"));
+        return alunos.listarDisponiveis(normalizarBuscaPorNome(nome), paginacao).map(AlunoResponse::de);
+    }
+
+    private String normalizarBuscaPorNome(String nome) {
+        String busca = nome == null ? "" : nome.strip();
+
+        if (busca.length() > 150) {
+            throw new RegraNegocioException("Busque por um nome com até 150 caracteres.");
+        }
+
+        return busca;
     }
 
     private Aluno buscarComBloqueio(UUID alunoId, Long versao) {

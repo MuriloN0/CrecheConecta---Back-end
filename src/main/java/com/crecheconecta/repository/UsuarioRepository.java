@@ -44,6 +44,23 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
             Pageable pageable
     );
 
+    @Query("""
+            SELECT u FROM Usuario u
+            WHERE u.perfil = :perfil AND u.situacaoCadastro = :situacao AND u.ativo = true
+              AND (:nome = '' OR LOCATE(LOWER(:nome), LOWER(u.nome)) > 0)
+              AND NOT EXISTS (
+                  SELECT v.id FROM TurmaProfessor v
+                  WHERE v.professorId = u.id AND v.turmaId = :turmaId AND v.encerradoEm IS NULL
+              )
+            """)
+    Page<Usuario> listarProfessoresDisponiveis(
+            @Param("perfil") Perfil perfil,
+            @Param("situacao") SituacaoCadastro situacao,
+            @Param("turmaId") UUID turmaId,
+            @Param("nome") String nome,
+            Pageable pageable
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             SELECT u

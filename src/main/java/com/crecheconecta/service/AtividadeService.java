@@ -22,6 +22,8 @@ import java.util.UUID;
 @PreAuthorize("hasAnyRole('DIRECAO', 'PROFESSOR', 'RESPONSAVEL')")
 public class AtividadeService {
 
+    private static final int ATIVIDADES_POR_PAGINA = 5;
+
     private final AtividadeRepository atividades;
     private final AtividadeTituloValidation tituloValidation;
     private final AtividadePrazoValidation prazoValidation;
@@ -153,7 +155,7 @@ public class AtividadeService {
         }
 
         var turmas = turmasDaConsulta(turmaId);
-        var paginacao = PageRequest.of(pagina, 20);
+        var paginacao = PageRequest.of(pagina, ATIVIDADES_POR_PAGINA);
         if (turmas.isEmpty()) return Page.empty(paginacao);
 
         return tipo == null

@@ -8,6 +8,7 @@ import com.crecheconecta.repository.AuditoriaRepository;
 import com.crecheconecta.security.UsuarioAtual;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,20 +20,34 @@ import java.util.UUID;
 
 @Service
 public class ChatService {
+
     private static final int TAMANHO = 30;
 
-    // A mesma regra protege a busca, a leitura e o envio.
+    private static final String MENSAGEM_EXPIRADA = """
+        NOT m.favorita_participante_a
+        AND NOT m.favorita_participante_b
+        AND m.criada_em <= statement_timestamp() - INTERVAL '168 hours'
+        """;
+
     private static final String CONTATOS_PERMITIDOS = """
-        SELECT u.id, u.nome, u.perfil
+        SELECT u.id, u.nome, u.perfil, c.id AS conversa_id, c.ultima_mensagem_em,
+               (eu.perfil = 'RESPONSAVEL' AND u.perfil = 'DIRECAO') AS somente_em_conversa
         FROM usuarios eu
-        JOIN usuarios u ON u.id <> eu.id AND u.perfil <> eu.perfil
+        JOIN usuarios u ON u.id <> eu.id
+        LEFT JOIN chat_conversas c
+          ON c.participante_a = LEAST(eu.id, u.id)
+         AND c.participante_b = GREATEST(eu.id, u.id)
         WHERE eu.id = :eu AND eu.ativo AND eu.situacao_cadastro = 'APROVADO'
           AND u.ativo AND u.situacao_cadastro = 'APROVADO'
           AND (
-              eu.perfil = 'DIRECAO' OR u.perfil = 'DIRECAO'
+              (eu.perfil = 'DIRECAO' AND u.perfil IN ('DIRECAO', 'PROFESSOR', 'RESPONSAVEL'))
+              OR (eu.perfil = 'PROFESSOR' AND u.perfil IN ('DIRECAO', 'PROFESSOR'))
+              OR (eu.perfil = 'RESPONSAVEL' AND u.perfil = 'DIRECAO' AND c.id IS NOT NULL)
               OR (
-                  eu.perfil IN ('PROFESSOR', 'RESPONSAVEL')
-                  AND u.perfil IN ('PROFESSOR', 'RESPONSAVEL')
+                  (
+                      (eu.perfil = 'PROFESSOR' AND u.perfil = 'RESPONSAVEL')
+                      OR (eu.perfil = 'RESPONSAVEL' AND u.perfil = 'PROFESSOR')
+                  )
                   AND EXISTS (
                       SELECT 1 FROM alunos_responsaveis ar
                       JOIN alunos a ON a.id = ar.aluno_id AND a.ativo
@@ -82,13 +97,11 @@ public class ChatService {
             WITH permitidos AS (
             """ + CONTATOS_PERMITIDOS + """
             )
-            SELECT p.id, p.nome, p.perfil, c.ultima_mensagem_em
-            FROM permitidos p
-            LEFT JOIN chat_conversas c
-              ON c.participante_a = LEAST(:eu, p.id) AND c.participante_b = GREATEST(:eu, p.id)
-            WHERE (NOT :somente OR c.id IS NOT NULL)
-              AND strpos(lower(p.nome), lower(:busca)) > 0
-            ORDER BY c.ultima_mensagem_em DESC NULLS LAST, lower(p.nome), p.id
+            SELECT id, nome, perfil, ultima_mensagem_em
+            FROM permitidos
+            WHERE ((:somente AND conversa_id IS NOT NULL) OR (NOT :somente AND NOT somente_em_conversa))
+              AND strpos(lower(nome), lower(:busca)) > 0
+            ORDER BY ultima_mensagem_em DESC NULLS LAST, lower(nome), id
             LIMIT :limite OFFSET :offset
             """, parametros, (rs, i) -> {
             var ultima = rs.getObject("ultima_mensagem_em", OffsetDateTime.class);
@@ -116,23 +129,32 @@ public class ChatService {
                 .addValue("limite", TAMANHO + 1);
 
         var registros = jdbc.query("""
-            SELECT m.ordem, m.id, m.autor_id, m.texto_cifrado, m.criada_em
+            SELECT m.ordem, m.id, m.autor_id, m.texto_cifrado, m.criada_em,
+                   CASE WHEN c.participante_a = :eu THEN m.favorita_participante_a
+                        ELSE m.favorita_participante_b END AS minha_favorita,
+                   (m.favorita_participante_a OR m.favorita_participante_b) AS preservada
             FROM chat_mensagens m JOIN chat_conversas c ON c.id = m.conversa_id
             WHERE c.participante_a = LEAST(:eu, :contato)
               AND c.participante_b = GREATEST(:eu, :contato)
               AND m.ordem < :antes
+              AND NOT (
+            """ + MENSAGEM_EXPIRADA + """
+              )
             ORDER BY m.ordem DESC
             LIMIT :limite
-            """, parametros, (rs, i) -> new Linha(rs.getLong("ordem"), new Mensagem(
+            """, parametros, (rs, i) -> new Mensagem(
                 rs.getObject("id", UUID.class),
                 rs.getObject("autor_id", UUID.class),
                 criptografia.decifrar(rs.getString("texto_cifrado")),
-                rs.getObject("criada_em", OffsetDateTime.class).toInstant()
-        )));
+                rs.getObject("criada_em", OffsetDateTime.class).toInstant(),
+                Long.toString(rs.getLong("ordem")),
+                rs.getBoolean("minha_favorita"),
+                rs.getBoolean("preservada")
+        ));
 
         var pagina = primeiros(registros);
-        var cursor = registros.size() > TAMANHO ? Long.toString(pagina.getLast().ordem()) : null;
-        return new PaginaMensagens(pagina.reversed().stream().map(Linha::mensagem).toList(), cursor);
+        var cursor = registros.size() > TAMANHO ? pagina.getLast().ordem() : null;
+        return new PaginaMensagens(List.copyOf(pagina.reversed()), cursor);
     }
 
     @Transactional
@@ -143,22 +165,30 @@ public class ChatService {
         }
 
         validarContato(eu.id(), contato);
-        var parametros = par(eu.id(), contato);
-        parametros.addValue("novo", UUID.randomUUID());
+        var parametros = par(eu.id(), contato).addValue("novo", UUID.randomUUID());
 
         int criada = jdbc.update("""
+            WITH permitidos AS (
+            """ + CONTATOS_PERMITIDOS + """
+            )
             INSERT INTO chat_conversas (id, participante_a, participante_b)
-            VALUES (:novo, LEAST(:eu, :contato), GREATEST(:eu, :contato))
+            SELECT :novo, LEAST(:eu, id), GREATEST(:eu, id)
+            FROM permitidos
+            WHERE id = :contato AND NOT somente_em_conversa
             ON CONFLICT (participante_a, participante_b) DO NOTHING
             """, parametros);
 
-        var conversa = jdbc.queryForObject("""
+        var conversas = jdbc.queryForList("""
             SELECT id FROM chat_conversas
             WHERE participante_a = LEAST(:eu, :contato) AND participante_b = GREATEST(:eu, :contato)
             FOR UPDATE
             """, parametros, UUID.class);
 
-        // O vínculo pode mudar enquanto o envio aguarda o bloqueio da conversa.
+        if (conversas.isEmpty()) {
+            throw contatoIndisponivel();
+        }
+
+        var conversa = conversas.getFirst();
         validarAceite(eu);
         validarContato(eu.id(), contato);
 
@@ -169,20 +199,57 @@ public class ChatService {
                 .addValue("autor", eu.id())
                 .addValue("texto", criptografia.cifrar(corpo));
 
-        var data = jdbc.queryForObject("""
+        var mensagem = jdbc.queryForObject("""
             INSERT INTO chat_mensagens (id, conversa_id, autor_id, texto_cifrado, criada_em)
             VALUES (:id, :conversa, :autor, :texto, clock_timestamp())
-            RETURNING criada_em
-            """, gravacao, (rs, i) -> rs.getObject(1, OffsetDateTime.class));
+            RETURNING criada_em, ordem
+            """, gravacao, (rs, i) -> new Mensagem(
+                id, eu.id(), corpo,
+                rs.getObject("criada_em", OffsetDateTime.class).toInstant(),
+                Long.toString(rs.getLong("ordem")),
+                false, false
+        ));
 
         jdbc.update("UPDATE chat_conversas SET ultima_mensagem_em = :data WHERE id = :id",
-                Map.of("data", data, "id", conversa));
+                Map.of("data", OffsetDateTime.ofInstant(mensagem.criadaEm(), java.time.ZoneOffset.UTC),
+                        "id", conversa));
 
         if (criada == 1) {
             registrar("CHAT_CONVERSA_CRIADA", eu.id(), conversa);
         }
         registrar("CHAT_MENSAGEM_ENVIADA", eu.id(), id);
-        return new Mensagem(id, eu.id(), corpo, data.toInstant());
+        return mensagem;
+    }
+
+    @Transactional
+    public boolean alterarFavorito(UsuarioAtual eu, UUID contato, UUID mensagem, boolean favorita) {
+        validarAceite(eu);
+        validarContato(eu.id(), contato);
+
+        var parametros = par(eu.id(), contato)
+                .addValue("mensagem", mensagem)
+                .addValue("favorita", favorita);
+
+        return jdbc.update("""
+            UPDATE chat_mensagens m
+            SET favorita_participante_a = CASE WHEN c.participante_a = :eu THEN :favorita
+                                              ELSE m.favorita_participante_a END,
+                favorita_participante_b = CASE WHEN c.participante_b = :eu THEN :favorita
+                                              ELSE m.favorita_participante_b END
+            FROM chat_conversas c
+            WHERE c.id = m.conversa_id
+              AND c.participante_a = LEAST(:eu, :contato)
+              AND c.participante_b = GREATEST(:eu, :contato)
+              AND m.id = :mensagem
+              AND NOT (
+            """ + MENSAGEM_EXPIRADA + """
+              )
+            """, parametros) == 1;
+    }
+
+    @Scheduled(cron = "${app.chat.retencao-cron:0 */5 * * * *}")
+    public void limparMensagensExpiradas() {
+        jdbc.update("DELETE FROM chat_mensagens m WHERE " + MENSAGEM_EXPIRADA, Map.of());
     }
 
     private void validarAceite(UsuarioAtual eu) {
@@ -199,8 +266,12 @@ public class ChatService {
             """, par(eu, contato), Boolean.class));
 
         if (!permitido) {
-            throw new AcessoNegadoException("Este contato não está disponível para conversa.");
+            throw contatoIndisponivel();
         }
+    }
+
+    private AcessoNegadoException contatoIndisponivel() {
+        return new AcessoNegadoException("Este contato não está disponível para conversa.");
     }
 
     private void registrar(String acao, UUID usuario, UUID recurso) {
@@ -220,8 +291,10 @@ public class ChatService {
     }
 
     public record Contato(UUID id, String nome, Perfil perfil, Instant ultimaMensagemEm) {}
-    public record Mensagem(UUID id, UUID autorId, String texto, Instant criadaEm) {}
+    public record Mensagem(
+            UUID id, UUID autorId, String texto, Instant criadaEm,
+            String ordem, boolean minhaFavorita, boolean preservada
+    ) {}
     public record PaginaContatos(List<Contato> itens, boolean temProxima) {}
     public record PaginaMensagens(List<Mensagem> itens, String cursorAnterior) {}
-    private record Linha(long ordem, Mensagem mensagem) {}
 }

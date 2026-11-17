@@ -27,6 +27,8 @@ import static com.crecheconecta.service.MalaVirtualSuporte.textoOpcional;
 @Service
 public class MalaVirtualFilhoService {
 
+    private static final int MALAS_POR_PAGINA = 5;
+
     private final VinculoResponsavelService acessoResponsavel;
     private final MalaVirtualRepository malas;
     private final ItemMalaRepository itens;
@@ -35,8 +37,15 @@ public class MalaVirtualFilhoService {
     private final AuditoriaService auditoria;
     private final Clock clock;
 
-    public MalaVirtualFilhoService(VinculoResponsavelService acessoResponsavel, MalaVirtualRepository malas, ItemMalaRepository itens, MarcacaoItemMalaRepository marcacoes, MalaVirtualSuporte suporte, AuditoriaService auditoria, Clock clock) {
-
+    public MalaVirtualFilhoService(
+            VinculoResponsavelService acessoResponsavel,
+            MalaVirtualRepository malas,
+            ItemMalaRepository itens,
+            MarcacaoItemMalaRepository marcacoes,
+            MalaVirtualSuporte suporte,
+            AuditoriaService auditoria,
+            Clock clock
+    ) {
         this.acessoResponsavel = acessoResponsavel;
         this.malas = malas;
         this.itens = itens;
@@ -48,7 +57,6 @@ public class MalaVirtualFilhoService {
 
     @Transactional(readOnly = true)
     public List<MalaVirtualResponse> listar(UUID alunoId, UsuarioAtual solicitante) {
-
         acessoResponsavel.exigirResponsavelDoAluno(solicitante, alunoId);
 
         var turmaId = acessoResponsavel.turmaAtualDoAluno(alunoId).orElse(null);
@@ -67,14 +75,13 @@ public class MalaVirtualFilhoService {
 
     @Transactional(readOnly = true)
     public Page<MalaVirtualResponse> listarPaginado(UUID alunoId, int pagina, UsuarioAtual solicitante) {
-
         acessoResponsavel.exigirResponsavelDoAluno(solicitante, alunoId);
 
         if (pagina < 0) {
             throw new RegraNegocioException("Informe uma página a partir de zero.");
         }
 
-        var paginacao = PageRequest.of(pagina, 20);
+        var paginacao = PageRequest.of(pagina, MALAS_POR_PAGINA);
         var turmaId = acessoResponsavel.turmaAtualDoAluno(alunoId).orElse(null);
         if (turmaId == null) {
             return Page.empty(paginacao);
@@ -88,18 +95,22 @@ public class MalaVirtualFilhoService {
         return resposta;
     }
 
-    private Function<MalaVirtual, MalaVirtualResponse> respostas(UUID alunoId, List<MalaVirtual> selecionadas, LocalDate hoje) {
-
+    private Function<MalaVirtual, MalaVirtualResponse> respostas(
+            UUID alunoId, List<MalaVirtual> selecionadas, LocalDate hoje
+    ) {
         var itensPorMala = suporte.itensPorMala(selecionadas);
         var itensSelecionados = itensPorMala.values().stream().flatMap(List::stream).toList();
         var marcacoesDoFilho = suporte.marcacoesDoAluno(alunoId, itensSelecionados);
 
-        return mala -> MalaVirtualResponse.de(mala, itensPorMala.getOrDefault(mala.getId(), List.of()), marcacoesDoFilho, hoje);
+        return mala -> MalaVirtualResponse.de(
+                mala, itensPorMala.getOrDefault(mala.getId(), List.of()), marcacoesDoFilho, hoje
+        );
     }
 
     @Transactional
-    public MalaVirtualResponse marcarItem(UUID alunoId, UUID malaId, UUID itemId, MarcarItemMalaRequest request, UsuarioAtual solicitante) {
-
+    public MalaVirtualResponse marcarItem(
+            UUID alunoId, UUID malaId, UUID itemId, MarcarItemMalaRequest request, UsuarioAtual solicitante
+    ) {
         acessoResponsavel.exigirResponsavelDoAluno(solicitante, alunoId);
 
         var turmaId = acessoResponsavel.turmaAtualDoAluno(alunoId)
@@ -110,18 +121,15 @@ public class MalaVirtualFilhoService {
 
         var hoje = suporte.hoje();
         if (mala.getData().isBefore(hoje)) {
-
             throw new RegraNegocioException("Não é possível marcar itens depois da data da aula.");
         }
 
         var itensDaMala = itens.findByMalaId(malaId);
         if (itensDaMala.stream().noneMatch(item -> item.getId().equals(itemId))) {
-
             throw new ItemMalaNaoEncontradoException();
         }
 
         var marcacao = marcacoes.findByItemIdAndAlunoId(itemId, alunoId).orElseGet(() -> {
-
             var nova = new MarcacaoItemMala();
             nova.setItemId(itemId);
             nova.setAlunoId(alunoId);

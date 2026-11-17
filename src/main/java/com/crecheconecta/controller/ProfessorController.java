@@ -60,6 +60,18 @@ public class ProfessorController {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
+    @GetMapping("/disponiveis")
+    public ResponseEntity<Page<ProfessorResponse>> listarDisponiveis(
+            @RequestParam UUID turmaId,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "5") int tamanho,
+            @RequestParam(defaultValue = "") String nome,
+            @AuthenticationPrincipal UsuarioAutenticado autenticado
+    ) {
+        var resposta = professores.listarDisponiveis(turmaId, pagina, tamanho, nome, UsuarioAtual.de(autenticado));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
+    }
+
     @GetMapping("/{professorId}")
     public ResponseEntity<ProfessorResponse> visualizar(
             @PathVariable UUID professorId,

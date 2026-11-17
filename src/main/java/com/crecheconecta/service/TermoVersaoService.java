@@ -34,12 +34,8 @@ public class TermoVersaoService {
     private final AuditoriaService auditoria;
     private final Clock clock;
 
-    public TermoVersaoService(
-            TermoVersaoRepository termos,
-            AceiteTermoRepository aceites,
-            AuditoriaService auditoria,
-            Clock clock
-    ) {
+    public TermoVersaoService(TermoVersaoRepository termos, AceiteTermoRepository aceites, AuditoriaService auditoria, Clock clock) {
+
         this.termos = termos;
         this.aceites = aceites;
         this.auditoria = auditoria;
@@ -48,6 +44,7 @@ public class TermoVersaoService {
 
     @Transactional(readOnly = true)
     public List<TermoVersaoResponse> listar() {
+
         Map<String, Long> aceitesPorVersao = contarAceites();
         return termos.findAllByOrderByCriadoEmDescIdDesc().stream()
                 .map(termo -> comTotal(termo, aceitesPorVersao))
@@ -56,7 +53,9 @@ public class TermoVersaoService {
 
     @Transactional(readOnly = true)
     public PaginaTermos listarPaginado(int pagina, StatusTermo status) {
+
         if (pagina < 0) {
+
             throw new RegraNegocioException("Informe uma página a partir de zero.");
         }
 
@@ -75,28 +74,22 @@ public class TermoVersaoService {
         return new PaginaTermos(versoes.getContent(), versoes.getTotalPages(), vigente);
     }
 
-    public record PaginaTermos(
-            List<TermoVersaoResponse> content,
-            int totalPages,
-            TermoVersaoResponse vigente
-    ) {}
+    public record PaginaTermos(List<TermoVersaoResponse> content, int totalPages, TermoVersaoResponse vigente) {}
 
     @Transactional(readOnly = true)
     public TermoVersaoResponse visualizar(UUID id) {
+
         TermoVersao termo = buscar(id);
-        return TermoVersaoResponse.de(termo, contarAceites().getOrDefault(termo.getIdentificador(), 0L));
+        return comTotal(termo, contarAceites());
     }
 
     @Transactional
     public TermoVersaoResponse criar(TermoVersaoRequest request, UsuarioAtual solicitante) {
-        String identificador = request.identificador().strip();
-        if (termos.existsByIdentificadorIgnoreCase(identificador)) {
-            throw new RegraNegocioException("Já existe uma versão com este identificador.");
-        }
 
         Instant agora = clock.instant();
+
         TermoVersao termo = new TermoVersao();
-        termo.setIdentificador(identificador);
+        termo.setIdentificador("v" + termos.proximoNumeroIdentificador());
         termo.setTermoUso(request.termoUso().strip());
         termo.setPoliticaPrivacidade(request.politicaPrivacidade().strip());
         termo.setStatus(StatusTermo.RASCUNHO);
@@ -111,16 +104,11 @@ public class TermoVersaoService {
 
     @Transactional
     public TermoVersaoResponse atualizar(UUID id, AtualizarTermoVersaoRequest request, UsuarioAtual solicitante) {
+
         TermoVersao termo = buscar(id);
         exigirRascunho(termo, "Somente rascunhos podem ser editados.");
         exigirVersao(termo, request.versao());
 
-        String identificador = request.identificador().strip();
-        if (termos.existsByIdentificadorIgnoreCaseAndIdNot(identificador, id)) {
-            throw new RegraNegocioException("Já existe uma versão com este identificador.");
-        }
-
-        termo.setIdentificador(identificador);
         termo.setTermoUso(request.termoUso().strip());
         termo.setPoliticaPrivacidade(request.politicaPrivacidade().strip());
         termo.setAtualizadoEm(clock.instant());
@@ -132,6 +120,7 @@ public class TermoVersaoService {
 
     @Transactional
     public void excluir(UUID id, UsuarioAtual solicitante) {
+
         TermoVersao termo = buscar(id);
         exigirRascunho(termo, "Somente rascunhos podem ser excluídos.");
 
@@ -142,16 +131,13 @@ public class TermoVersaoService {
 
     @Transactional
     public TermoVersaoResponse publicar(UUID id, Long versao, UsuarioAtual solicitante) {
+
         TermoVersao termo = buscar(id);
         exigirRascunho(termo, "Somente rascunhos podem ser publicados.");
         exigirVersao(termo, versao);
         Instant agora = clock.instant();
 
-        termos.buscarPorStatusComBloqueio(StatusTermo.VIGENTE).ifPresent(anterior -> {
-            anterior.setStatus(StatusTermo.ARQUIVADO);
-            anterior.setAtualizadoEm(agora);
-            termos.saveAndFlush(anterior);
-        });
+        termos.buscarPorStatusComBloqueio(StatusTermo.VIGENTE).ifPresent(anterior -> {anterior.setStatus(StatusTermo.ARQUIVADO);anterior.setAtualizadoEm(agora);termos.saveAndFlush(anterior);});
 
         termo.setStatus(StatusTermo.VIGENTE);
         termo.setPublicadoEm(agora);
@@ -159,7 +145,7 @@ public class TermoVersaoService {
         termos.saveAndFlush(termo);
 
         auditoria.aposCommit("TERMO_PUBLICADO", solicitante.id(), termo.getId());
-        return TermoVersaoResponse.de(termo, contarAceites().getOrDefault(termo.getIdentificador(), 0L));
+        return comTotal(termo, contarAceites());
     }
 
     private TermoVersao buscar(UUID id) {
@@ -184,9 +170,6 @@ public class TermoVersaoService {
 
     private Map<String, Long> contarAceites() {
         return aceites.contarPorVersao().stream()
-                .collect(Collectors.toMap(
-                        AceiteTermoRepository.AceitesPorVersao::getIdentificador,
-                        AceiteTermoRepository.AceitesPorVersao::getTotal
-                ));
+                .collect(Collectors.toMap(AceiteTermoRepository.AceitesPorVersao::getIdentificador, AceiteTermoRepository.AceitesPorVersao::getTotal));
     }
 }
