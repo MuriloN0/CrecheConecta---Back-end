@@ -29,7 +29,7 @@ import java.util.UUID;
 public class CadastroResponsavelService {
 
     private static final ZoneId FUSO_CRECHE = ZoneId.of("America/Sao_Paulo");
-    private static final int IDADE_MINIMA_MESES = 6;
+    private static final int IDADE_MINIMA_MESES = 4;
     private static final int IDADE_MAXIMA_ANOS = 4;
     private static final Duration PRAZO_CADASTRO = Duration.ofMinutes(5);
     private static final String MENSAGEM_PRAZO_ENCERRADO =
@@ -123,7 +123,7 @@ public class CadastroResponsavelService {
         }
 
         if (dataNascimento.isAfter(faixa.dataMaxima())) {
-            throw new RegraNegocioException("O aluno deve ter pelo menos 6 meses completos.");
+            throw new RegraNegocioException("O aluno deve ter pelo menos 4 meses completos.");
         }
 
         if (!Boolean.TRUE.equals(request.aceitouDocumentos())) {
@@ -159,7 +159,6 @@ public class CadastroResponsavelService {
         convites.flush();
 
         auditoria.aposCommit("RESPONSAVEL_CADASTRO_CONCLUIDO", responsavel.getId(), aluno.getId());
-
         return new CadastroResponsavelResultado(
                 responsavel.getId(), aluno.getId(), "Cadastro concluído. Você já pode entrar."
         );
