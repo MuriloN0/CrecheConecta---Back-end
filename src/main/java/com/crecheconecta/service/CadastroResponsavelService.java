@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -28,8 +29,11 @@ import java.util.UUID;
 public class CadastroResponsavelService {
 
     private static final ZoneId FUSO_CRECHE = ZoneId.of("America/Sao_Paulo");
-    private static final int IDADE_MINIMA_MESES = 6;
+    private static final int IDADE_MINIMA_MESES = 4;
     private static final int IDADE_MAXIMA_ANOS = 4;
+    private static final Duration PRAZO_CADASTRO = Duration.ofMinutes(5);
+    private static final String MENSAGEM_PRAZO_ENCERRADO =
+            "O prazo para concluir o cadastro terminou. Solicite um novo convite à direção.";
 
     private final ConviteCadastroRepository convites;
     private final UsuarioRepository usuarios;
@@ -41,8 +45,17 @@ public class CadastroResponsavelService {
     private final Clock clock;
     private final TermoService termos;
 
-    public CadastroResponsavelService(ConviteCadastroRepository convites, UsuarioRepository usuarios, AlunoRepository alunos, AlunoResponsavelRepository vinculos, TokenConviteService tokens, PasswordEncoder encoder, AuditoriaService auditoria, Clock clock, TermoService termos) {
-
+    public CadastroResponsavelService(
+            ConviteCadastroRepository convites,
+            UsuarioRepository usuarios,
+            AlunoRepository alunos,
+            AlunoResponsavelRepository vinculos,
+            TokenConviteService tokens,
+            PasswordEncoder encoder,
+            AuditoriaService auditoria,
+            Clock clock,
+            TermoService termos
+    ) {
         this.convites = convites;
         this.usuarios = usuarios;
         this.alunos = alunos;
@@ -56,16 +69,39 @@ public class CadastroResponsavelService {
 
     @Transactional
     public DadosConviteResponsavel consultar(String token) {
+        var convite = buscarConviteComBloqueio(token);
+        Instant agora = clock.instant();
+        validarConviteDisponivel(convite, agora);
 
-        var convite = buscarDisponivel(token);
+        if (convite.getCadastroExpiraEm() == null) {
+            Instant prazo = agora.plus(PRAZO_CADASTRO);
+            convite.setCadastroExpiraEm(
+                    prazo.isBefore(convite.getExpiraEm()) ? prazo : convite.getExpiraEm()
+            );
+        }
 
-        return new DadosConviteResponsavel(convite.getNome(), convite.getEmail(), convite.getExpiraEm(), termos.documentosCadastro(), faixaNascimento());
+        var documentos = termos.documentosCadastro();
+        var faixa = faixaNascimento();
+        Instant consultadoEm = clock.instant();
+        validarPrazoCadastro(convite, consultadoEm);
+
+        return new DadosConviteResponsavel(
+                convite.getNome(),
+                convite.getEmail(),
+                convite.getExpiraEm(),
+                documentos,
+                faixa,
+                convite.getCadastroExpiraEm(),
+                consultadoEm
+        );
     }
 
     @Transactional
     public CadastroResponsavelResultado concluir(ConcluirCadastroResponsavelRequest request) {
-
-        var convite = buscarDisponivel(request.token());
+        var convite = buscarConviteComBloqueio(request.token());
+        Instant inicio = clock.instant();
+        validarConviteDisponivel(convite, inicio);
+        validarPrazoCadastro(convite, inicio);
 
         if (usuarios.existsByEmail(convite.getEmail())) {
             throw new RegraNegocioException("Não foi possível concluir este convite.");
@@ -79,24 +115,18 @@ public class CadastroResponsavelService {
         var faixa = faixaNascimento();
 
         if (dataNascimento == null) {
-
             throw new RegraNegocioException("Informe a data de nascimento do aluno.");
         }
 
         if (dataNascimento.isBefore(faixa.dataMinima())) {
-
-            throw new RegraNegocioException(
-                    "O aluno deve ter no máximo 4 anos pelo ano de nascimento."
-            );
+            throw new RegraNegocioException("O aluno deve ter no máximo 4 anos pelo ano de nascimento.");
         }
 
         if (dataNascimento.isAfter(faixa.dataMaxima())) {
-
-            throw new RegraNegocioException("O aluno deve ter pelo menos 6 meses completos.");
+            throw new RegraNegocioException("O aluno deve ter pelo menos 4 meses completos.");
         }
 
         if (!Boolean.TRUE.equals(request.aceitouDocumentos())) {
-
             throw new RegraNegocioException("Aceite os Termos de Uso e a Política de Privacidade.");
         }
 
@@ -115,30 +145,26 @@ public class CadastroResponsavelService {
         aluno.setDataNascimento(dataNascimento);
         alunos.saveAndFlush(aluno);
 
-        Instant agora = clock.instant();
-        if (!convite.estaDisponivel(agora)) {
-
-            throw conviteInvalido();
-        }
-
         var vinculo = new AlunoResponsavel();
         vinculo.setAlunoId(aluno.getId());
         vinculo.setResponsavelId(responsavel.getId());
-        vinculo.setCriadoEm(agora);
+        vinculo.setCriadoEm(clock.instant());
         vinculos.saveAndFlush(vinculo);
 
         termos.registrarAceiteCadastro(responsavel.getId(), aluno.getId(), request.versaoTermos());
 
+        Instant agora = clock.instant();
+        validarPrazoCadastro(convite, agora);
         convite.setConsumidoEm(agora);
         convites.flush();
 
         auditoria.aposCommit("RESPONSAVEL_CADASTRO_CONCLUIDO", responsavel.getId(), aluno.getId());
-
-        return new CadastroResponsavelResultado(responsavel.getId(), aluno.getId(), "Cadastro concluído. Você já pode entrar.");
+        return new CadastroResponsavelResultado(
+                responsavel.getId(), aluno.getId(), "Cadastro concluído. Você já pode entrar."
+        );
     }
 
     private FaixaNascimento faixaNascimento() {
-
         var hoje = LocalDate.now(clock.withZone(FUSO_CRECHE));
         var dataMinima = LocalDate.of(hoje.getYear() - IDADE_MAXIMA_ANOS, 1, 1);
         var dataMaxima = hoje.minusMonths(IDADE_MINIMA_MESES);
@@ -150,38 +176,54 @@ public class CadastroResponsavelService {
         return new FaixaNascimento(dataMinima, dataMaxima);
     }
 
-    private ConviteCadastro buscarDisponivel(String token) {
-
+    private ConviteCadastro buscarConviteComBloqueio(String token) {
         if (token == null || !token.matches("[A-Za-z0-9_-]{43}")) {
-
             throw conviteInvalido();
         }
 
         var convite = convites.buscarPorTokenHashComBloqueio(tokens.calcularHash(token))
                 .orElseThrow(this::conviteInvalido);
 
-        if (convite.getPerfil() != Perfil.RESPONSAVEL || !convite.estaDisponivel(clock.instant())) {
-
+        if (convite.getPerfil() != Perfil.RESPONSAVEL) {
             throw conviteInvalido();
         }
 
         return convite;
     }
 
-    private RegraNegocioException conviteInvalido() {
+    private void validarConviteDisponivel(ConviteCadastro convite, Instant agora) {
+        if (!convite.estaDisponivel(agora)) {
+            throw conviteInvalido();
+        }
+    }
 
+    private void validarPrazoCadastro(ConviteCadastro convite, Instant agora) {
+        Instant prazo = convite.getCadastroExpiraEm();
+
+        if (prazo == null) {
+            throw new RegraNegocioException("Abra o convite para iniciar o cadastro.");
+        }
+
+        if (!prazo.isAfter(agora)) {
+            throw new RegraNegocioException(MENSAGEM_PRAZO_ENCERRADO);
+        }
+    }
+
+    private RegraNegocioException conviteInvalido() {
         return new RegraNegocioException("Convite inválido, expirado, cancelado ou já utilizado.");
     }
 
-    public record DadosConviteResponsavel(String nome, String email, Instant expiraEm, TermoService.DocumentosCadastro documentos, FaixaNascimento faixaNascimento) {
+    public record DadosConviteResponsavel(
+            String nome,
+            String email,
+            Instant expiraEm,
+            TermoService.DocumentosCadastro documentos,
+            FaixaNascimento faixaNascimento,
+            Instant cadastroExpiraEm,
+            Instant consultadoEm
+    ) {}
 
-    }
+    public record FaixaNascimento(LocalDate dataMinima, LocalDate dataMaxima) {}
 
-    public record FaixaNascimento(LocalDate dataMinima, LocalDate dataMaxima) {
-
-    }
-
-    public record CadastroResponsavelResultado(UUID usuarioId, UUID alunoId, String mensagem) {
-
-    }
+    public record CadastroResponsavelResultado(UUID usuarioId, UUID alunoId, String mensagem) {}
 }

@@ -22,9 +22,8 @@ public interface TermoVersaoRepository extends JpaRepository<TermoVersao, UUID> 
     @Query("SELECT t FROM TermoVersao t WHERE t.status = :status")
     Optional<TermoVersao> buscarPorStatusComBloqueio(@Param("status") StatusTermo status);
 
-    boolean existsByIdentificadorIgnoreCase(String identificador);
-
-    boolean existsByIdentificadorIgnoreCaseAndIdNot(String identificador, UUID id);
+    @Query(value = "SELECT nextval('public.termos_identificador_seq')", nativeQuery = true)
+    long proximoNumeroIdentificador();
 
     List<TermoVersao> findAllByOrderByCriadoEmDescIdDesc();
 

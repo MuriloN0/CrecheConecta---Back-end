@@ -18,12 +18,17 @@ import java.util.UUID;
 @PreAuthorize("hasRole('PROFESSOR')")
 public class MalaVirtualPaginacaoService {
 
+    private static final int MALAS_POR_PAGINA = 5;
+
     private final MalaVirtualRepository malas;
     private final VinculoProfessorService vinculoProfessor;
     private final MalaVirtualSuporte suporte;
 
-    public MalaVirtualPaginacaoService(MalaVirtualRepository malas, VinculoProfessorService vinculoProfessor, MalaVirtualSuporte suporte) {
-
+    public MalaVirtualPaginacaoService(
+            MalaVirtualRepository malas,
+            VinculoProfessorService vinculoProfessor,
+            MalaVirtualSuporte suporte
+    ) {
         this.malas = malas;
         this.vinculoProfessor = vinculoProfessor;
         this.suporte = suporte;
@@ -31,18 +36,18 @@ public class MalaVirtualPaginacaoService {
 
     @Transactional(readOnly = true)
     public Page<MalaVirtualTurmaResponse> listar(UUID turmaId, int pagina, UsuarioAtual solicitante) {
-
         vinculoProfessor.exigirProfessorDaTurma(turmaId, solicitante);
 
         if (pagina < 0) {
-
             throw new RegraNegocioException("Informe uma página a partir de zero.");
         }
 
         var ordem = Sort.by(Sort.Direction.DESC, "data", "criadoEm", "id");
-        var resultado = malas.findByTurmaId(turmaId, PageRequest.of(pagina, 20, ordem));
+        var resultado = malas.findByTurmaId(turmaId, PageRequest.of(pagina, MALAS_POR_PAGINA, ordem));
         var itensPorMala = suporte.itensPorMala(resultado.getContent());
 
-        return resultado.map(mala -> MalaVirtualTurmaResponse.de(mala, itensPorMala.getOrDefault(mala.getId(), List.of())));
+        return resultado.map(mala ->
+                MalaVirtualTurmaResponse.de(mala, itensPorMala.getOrDefault(mala.getId(), List.of()))
+        );
     }
 }
