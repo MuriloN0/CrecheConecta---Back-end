@@ -31,4 +31,7 @@ public class AceiteTermo {
 
     @Column(nullable = false)
     private Instant dataAceite = Instant.now();
+
+    @Column(name = "revogado_em")
+    private Instant revogadoEm;
 }

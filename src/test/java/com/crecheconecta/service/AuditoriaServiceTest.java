@@ -6,8 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.UUID;
 
@@ -18,15 +16,9 @@ import static org.mockito.Mockito.*;
 
 class AuditoriaServiceTest {
 
-    private final AuditoriaRepository repository =
-            mock(AuditoriaRepository.class);
-
-    private final PlatformTransactionManager manager =
-            transacoes();
-
-    private final AuditoriaService service =
-            new AuditoriaService(repository, manager);
-
+    private final AuditoriaRepository repository = mock(AuditoriaRepository.class);
+    private final PlatformTransactionManager manager = transacoes();
+    private final AuditoriaService service = new AuditoriaService(repository, manager);
     private final UUID usuarioId = UUID.randomUUID();
     private final UUID recursoId = UUID.randomUUID();
 
@@ -34,63 +26,38 @@ class AuditoriaServiceTest {
     void deveRegistrarEventoEmTransacaoIndependente() {
         service.registrar("ACAO_TESTE", usuarioId, recursoId);
 
-        var captor = ArgumentCaptor.forClass(EventoAuditoria.class);
-        verify(repository).save(captor.capture());
-
-        assertEquals("ACAO_TESTE", captor.getValue().getAcao());
-        assertEquals(usuarioId, captor.getValue().getUsuarioId());
-        assertEquals(recursoId, captor.getValue().getRecursoId());
-
+        conferirEvento();
         verify(manager).getTransaction(argThat(definicao ->
-                definicao.getPropagationBehavior()
-                        == TransactionDefinition.PROPAGATION_REQUIRES_NEW
+                definicao.getPropagationBehavior() == TransactionDefinition.PROPAGATION_REQUIRES_NEW
         ));
     }
 
     @Test
-    void deveRegistrarImediatamenteSemSincronizacaoAtiva() {
+    void deveParticiparDaTransacaoDeNegocio() {
         service.aposCommit("ACAO_TESTE", usuarioId, recursoId);
 
-        verify(repository).save(any(EventoAuditoria.class));
+        conferirEvento();
+        verify(manager).getTransaction(argThat(definicao ->
+                definicao.getPropagationBehavior() == TransactionDefinition.PROPAGATION_REQUIRED
+        ));
     }
 
     @Test
-    void deveAguardarCallbackDeCommit() {
-        TransactionSynchronizationManager.initSynchronization();
+    void devePropagarFalhaDaAuditoria() {
+        when(repository.save(any(EventoAuditoria.class)))
+                .thenThrow(new IllegalStateException("Falha simulada"));
 
-        try {
-            service.aposCommit("ACAO_TESTE", usuarioId, recursoId);
+        assertThrows(IllegalStateException.class,
+                () -> service.aposCommit("ACAO_TESTE", usuarioId, recursoId));
 
-            verifyNoInteractions(repository);
-
-            for (var sincronizacao :
-                    TransactionSynchronizationManager.getSynchronizations()) {
-                sincronizacao.afterCommit();
-            }
-
-            verify(repository).save(any(EventoAuditoria.class));
-        } finally {
-            TransactionSynchronizationManager.clearSynchronization();
-        }
+        verify(manager).rollback(any());
     }
 
-    @Test
-    void naoDeveRegistrarSucessoNoCallbackDeRollback() {
-        TransactionSynchronizationManager.initSynchronization();
-
-        try {
-            service.aposCommit("ACAO_TESTE", usuarioId, recursoId);
-
-            for (var sincronizacao :
-                    TransactionSynchronizationManager.getSynchronizations()) {
-                sincronizacao.afterCompletion(
-                        TransactionSynchronization.STATUS_ROLLED_BACK
-                );
-            }
-
-            verifyNoInteractions(repository);
-        } finally {
-            TransactionSynchronizationManager.clearSynchronization();
-        }
+    private void conferirEvento() {
+        var captor = ArgumentCaptor.forClass(EventoAuditoria.class);
+        verify(repository).save(captor.capture());
+        assertEquals("ACAO_TESTE", captor.getValue().getAcao());
+        assertEquals(usuarioId, captor.getValue().getUsuarioId());
+        assertEquals(recursoId, captor.getValue().getRecursoId());
     }
 }

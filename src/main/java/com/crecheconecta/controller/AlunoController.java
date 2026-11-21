@@ -28,28 +28,24 @@ public class AlunoController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<AlunoResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(required = false) Boolean ativo, @RequestParam(required = false) String nome, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
+    public ResponseEntity<Page<AlunoResponse>> listar(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(required = false) Boolean ativo, @RequestParam(required = false) String nome, @RequestParam(required = false) Integer mesNascimento, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
-        var resposta = alunos.listar(pagina, tamanho, ativo, nome, UsuarioAtual.de(autenticado));
+        var resposta = alunos.listar(pagina, tamanho, ativo, nome, mesNascimento, UsuarioAtual.de(autenticado));
+
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 
     @GetMapping("/disponiveis")
-    public ResponseEntity<Page<AlunoResponse>> listarDisponiveis(
-            @RequestParam(defaultValue = "0") int pagina,
-            @RequestParam(defaultValue = "20") int tamanho,
-            @RequestParam(required = false) String nome,
-            @AuthenticationPrincipal UsuarioAutenticado autenticado
-    ) {
+    public ResponseEntity<Page<AlunoResponse>> listarDisponiveis(@RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanho, @RequestParam(required = false) String nome, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-                .body(alunos.listarDisponiveis(pagina, tamanho, nome, UsuarioAtual.de(autenticado)));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(alunos.listarDisponiveis(pagina, tamanho, nome, UsuarioAtual.de(autenticado)));
     }
 
     @GetMapping("/{alunoId}")
     public ResponseEntity<AlunoResponse> visualizar(@PathVariable UUID alunoId, @AuthenticationPrincipal UsuarioAutenticado autenticado) {
 
         var resposta = alunos.visualizar(alunoId, UsuarioAtual.de(autenticado));
+
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(resposta);
     }
 

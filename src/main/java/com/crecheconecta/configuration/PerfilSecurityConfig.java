@@ -21,31 +21,58 @@ public class PerfilSecurityConfig {
     private static final String SOLICITAR_EMAIL = "/api/perfil/email/solicitar";
     private static final String CONFIRMAR_EMAIL = "/api/perfil/email/confirmar";
     private static final String INATIVAR = "/api/perfil/inativar";
+    private static final String REVOGAR_TERMOS = "/api/perfil/termos/revogar";
 
     @Bean
     @Order(3)
-    public SecurityFilterChain perfilSecurityFilterChain(HttpSecurity http, SessaoService sessoes) throws Exception {
+    public SecurityFilterChain perfilSecurityFilterChain(
+            HttpSecurity http,
+            SessaoService sessoes
+    ) throws Exception {
         return http
                 .securityMatcher(PERFIL, "/api/perfil/**")
-                .csrf(csrf -> csrf.ignoringRequestMatchers(TELEFONE, SOLICITAR_EMAIL, CONFIRMAR_EMAIL, INATIVAR))
-                .sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .csrf(csrf -> csrf.ignoringRequestMatchers(
+                        TELEFONE,
+                        SOLICITAR_EMAIL,
+                        CONFIRMAR_EMAIL,
+                        INATIVAR,
+                        REVOGAR_TERMOS
+                ))
+                .sessionManagement(sessao ->
+                        sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .requestCache(cache -> cache.disable())
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, PERFIL).hasAnyRole("PROFESSOR", "RESPONSAVEL")
-                        .requestMatchers(HttpMethod.PUT, TELEFONE).hasAnyRole("PROFESSOR", "RESPONSAVEL")
-                        .requestMatchers(HttpMethod.POST, SOLICITAR_EMAIL, CONFIRMAR_EMAIL, INATIVAR)
+                        .requestMatchers(HttpMethod.GET, PERFIL)
+                        .hasAnyRole("PROFESSOR", "RESPONSAVEL")
+                        .requestMatchers(HttpMethod.PUT, TELEFONE)
+                        .hasAnyRole("PROFESSOR", "RESPONSAVEL")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                SOLICITAR_EMAIL,
+                                CONFIRMAR_EMAIL,
+                                INATIVAR,
+                                REVOGAR_TERMOS
+                        )
                         .hasRole("RESPONSAVEL")
-                        .anyRequest().denyAll())
+                        .anyRequest().denyAll()
+                )
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, exception) ->
-                                RespostaErroSeguranca.naoAutenticado(response))
+                                RespostaErroSeguranca.naoAutenticado(response)
+                        )
                         .accessDeniedHandler((request, response, exception) ->
-                                RespostaErroSeguranca.acessoNegado(response)))
-                .addFilterBefore(new AutenticacaoTokenFilter(sessoes), UsernamePasswordAuthenticationFilter.class)
+                                RespostaErroSeguranca.acessoNegado(response)
+                        )
+                )
+                .addFilterBefore(
+                        new AutenticacaoTokenFilter(sessoes),
+                        UsernamePasswordAuthenticationFilter.class
+                )
                 .build();
     }
 }

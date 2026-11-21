@@ -4,21 +4,23 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * LGPD (art. 18, II e V): cópia dos dados que o sistema guarda sobre o responsável e as crianças
- * vinculadas a ele, num formato que ele pode baixar (JSON).
- */
+
+ //LGPD (art. 18, II e V): cópia dos dados que o sistema guarda sobre o responsável e as crianças vinculadas a ele, num formato que ele pode baixar (JSON).
+
 public record MeusDadosResponse(
         Instant geradoEm,
         Titular titular,
         List<AceiteRegistrado> aceitesDosTermos,
-        List<DadosFilho> filhos) {
+        List<DadosFilho> filhos
+) {
 
-    public record Titular(String nome, String email, String telefone) {
-    }
+    public record Titular(String nome, String email, String telefone) {}
 
-    public record AceiteRegistrado(String versao, Instant aceitoEm) {
-    }
+    public record AceiteRegistrado(
+            String versao,
+            Instant aceitoEm,
+            Instant revogadoEm
+    ) {}
 
     public record DadosFilho(
             String nome,
@@ -28,18 +30,31 @@ public record MeusDadosResponse(
             List<InformacaoExportada> informacoesRelevantes,
             List<ObservacaoExportada> observacoesDosProfessores,
             List<DiarioExportado> diarios,
-            List<PresencaExportada> frequencia) {
-    }
+            List<PresencaExportada> frequencia
+    ) {}
 
-    public record InformacaoExportada(String nome, String observacoes, Instant cadastradaEm) {
-    }
+    public record InformacaoExportada(
+            String nome,
+            String observacoes,
+            Instant cadastradaEm
+    ) {}
 
-    public record ObservacaoExportada(String titulo, String conteudo, String professor, Instant registradaEm) {
-    }
+    public record ObservacaoExportada(
+            String titulo,
+            String conteudo,
+            String professor,
+            Instant registradaEm
+    ) {}
 
-    public record DiarioExportado(LocalDate data, String alimentacao, String sono, String humor, String higiene, boolean evacuacao, String observacaoProfessor) {
-    }
+    public record DiarioExportado(
+            LocalDate data,
+            String alimentacao,
+            String sono,
+            String humor,
+            String higiene,
+            boolean evacuacao,
+            String observacaoProfessor
+    ) {}
 
-    public record PresencaExportada(LocalDate data, boolean presente) {
-    }
+    public record PresencaExportada(LocalDate data, boolean presente) {}
 }
