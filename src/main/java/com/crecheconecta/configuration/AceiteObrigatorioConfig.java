@@ -26,9 +26,13 @@ public class AceiteObrigatorioConfig implements WebMvcConfigurer {
         registry.addInterceptor(new HandlerInterceptor() {
             @Override
             public boolean preHandle(
-                    HttpServletRequest request, HttpServletResponse response, Object handler
+                    HttpServletRequest request,
+                    HttpServletResponse response,
+                    Object handler
             ) {
-                var autenticacao = SecurityContextHolder.getContext().getAuthentication();
+                var autenticacao = SecurityContextHolder.getContext()
+                        .getAuthentication();
+
                 if (autenticacao != null
                         && autenticacao.getPrincipal() instanceof UsuarioAutenticado usuario
                         && usuario.perfil() == Perfil.RESPONSAVEL
@@ -43,6 +47,7 @@ public class AceiteObrigatorioConfig implements WebMvcConfigurer {
                 "/api/auth/logout",
                 "/api/termo/status",
                 "/api/termo/aceite",
+                "/api/perfil/termos/revogar",
                 "/api/cadastro/**",
                 "/api/meus-dados"
         );

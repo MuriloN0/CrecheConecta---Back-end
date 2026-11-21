@@ -18,6 +18,19 @@ public interface AlunoRepository extends JpaRepository<Aluno, UUID> {
 
     @Query("""
             SELECT a FROM Aluno a
+            WHERE MONTH(a.dataNascimento) = :mesNascimento
+              AND (:ativo IS NULL OR a.ativo = :ativo)
+              AND (:nome = '' OR LOCATE(LOWER(:nome), LOWER(a.nome)) > 0)
+            """)
+    Page<Aluno> buscarPorMesNascimento(
+            @Param("mesNascimento") int mesNascimento,
+            @Param("nome") String nome,
+            @Param("ativo") Boolean ativo,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT a FROM Aluno a
             WHERE (:ativo IS NULL OR a.ativo = :ativo)
               AND LOCATE(LOWER(:nome), LOWER(a.nome)) > 0
             """)
@@ -36,7 +49,10 @@ public interface AlunoRepository extends JpaRepository<Aluno, UUID> {
                   WHERE m.alunoId = a.id AND m.encerradoEm IS NULL
               )
             """)
-    Page<Aluno> listarDisponiveis(@Param("nome") String nome, Pageable pageable);
+    Page<Aluno> listarDisponiveis(
+            @Param("nome") String nome,
+            Pageable pageable
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Aluno a WHERE a.id = :id")
