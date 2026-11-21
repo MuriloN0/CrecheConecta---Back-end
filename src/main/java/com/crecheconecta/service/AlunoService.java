@@ -35,8 +35,13 @@ public class AlunoService {
     private final Clock clock;
     private final MatriculaTurmaRepository matriculas;
 
-    public AlunoService(AlunoRepository alunos, UsuarioRepository usuarios, AuditoriaService auditoria, Clock clock, MatriculaTurmaRepository matriculas) {
-
+    public AlunoService(
+            AlunoRepository alunos,
+            UsuarioRepository usuarios,
+            AuditoriaService auditoria,
+            Clock clock,
+            MatriculaTurmaRepository matriculas
+    ) {
         this.alunos = alunos;
         this.usuarios = usuarios;
         this.auditoria = auditoria;
@@ -45,8 +50,10 @@ public class AlunoService {
     }
 
     @Transactional
-    public AlunoResponse cadastrar(CadastrarAlunoRequest request, UsuarioAtual solicitante) {
-
+    public AlunoResponse cadastrar(
+            CadastrarAlunoRequest request,
+            UsuarioAtual solicitante
+    ) {
         validarDirecao(solicitante);
         String nome = validarDados(request.nome(), request.dataNascimento());
 
@@ -62,44 +69,85 @@ public class AlunoService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AlunoResponse> listar(int pagina, int tamanho, Boolean ativo, UsuarioAtual solicitante) {
-
+    public Page<AlunoResponse> listar(
+            int pagina,
+            int tamanho,
+            Boolean ativo,
+            UsuarioAtual solicitante
+    ) {
         return listar(pagina, tamanho, ativo, null, solicitante);
     }
 
     @Transactional(readOnly = true)
-    public Page<AlunoResponse> listar(int pagina, int tamanho, Boolean ativo, String nome, UsuarioAtual solicitante) {
+    public Page<AlunoResponse> listar(
+            int pagina,
+            int tamanho,
+            Boolean ativo,
+            String nome,
+            UsuarioAtual solicitante
+    ) {
+        return listar(pagina, tamanho, ativo, nome, null, solicitante);
+    }
 
+    @Transactional(readOnly = true)
+    public Page<AlunoResponse> listar(
+            int pagina,
+            int tamanho,
+            Boolean ativo,
+            String nome,
+            Integer mesNascimento,
+            UsuarioAtual solicitante
+    ) {
         validarDirecao(solicitante);
 
         if (pagina < 0 || tamanho < 1 || tamanho > 100) {
-
-            throw new RegraNegocioException("Informe página a partir de zero e tamanho entre 1 e 100.");
+            throw new RegraNegocioException(
+                    "Informe página a partir de zero e tamanho entre 1 e 100."
+            );
         }
 
         var paginacao = PageRequest.of(pagina, tamanho, Sort.by("nome", "id"));
         String busca = normalizarBuscaPorNome(nome);
 
-        if (!busca.isEmpty()) {
-            return alunos.buscarPorNome(busca, ativo, paginacao).map(AlunoResponse::de);
+        if (mesNascimento != null) {
+            if (mesNascimento < 1 || mesNascimento > 12) {
+                throw new RegraNegocioException(
+                        "Informe um mês de nascimento entre 1 e 12."
+                );
+            }
+
+            return alunos.buscarPorMesNascimento(
+                    mesNascimento, busca, ativo, paginacao
+            ).map(AlunoResponse::de);
         }
 
-        Page<Aluno> resultado = ativo == null ? alunos.findAll(paginacao) : alunos.findByAtivo(ativo, paginacao);
+        if (!busca.isEmpty()) {
+            return alunos.buscarPorNome(busca, ativo, paginacao)
+                    .map(AlunoResponse::de);
+        }
+
+        Page<Aluno> resultado = ativo == null
+                ? alunos.findAll(paginacao)
+                : alunos.findByAtivo(ativo, paginacao);
 
         return resultado.map(AlunoResponse::de);
     }
 
     @Transactional(readOnly = true)
     public AlunoResponse visualizar(UUID alunoId, UsuarioAtual solicitante) {
-
         validarDirecao(solicitante);
-        var aluno = alunos.findById(alunoId).orElseThrow(AlunoNaoEncontradoException::new);
+        var aluno = alunos.findById(alunoId)
+                .orElseThrow(AlunoNaoEncontradoException::new);
+
         return AlunoResponse.de(aluno);
     }
 
     @Transactional
-    public AlunoResponse atualizar(UUID alunoId, AtualizarAlunoRequest request, UsuarioAtual solicitante) {
-
+    public AlunoResponse atualizar(
+            UUID alunoId,
+            AtualizarAlunoRequest request,
+            UsuarioAtual solicitante
+    ) {
         validarDirecao(solicitante);
         var aluno = buscarComBloqueio(alunoId, request.versao());
 
@@ -114,8 +162,11 @@ public class AlunoService {
     }
 
     @Transactional
-    public AlunoResponse inativar(UUID alunoId, Long versao, UsuarioAtual solicitante) {
-
+    public AlunoResponse inativar(
+            UUID alunoId,
+            Long versao,
+            UsuarioAtual solicitante
+    ) {
         validarDirecao(solicitante);
         var aluno = buscarComBloqueio(alunoId, versao);
 
@@ -132,31 +183,42 @@ public class AlunoService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AlunoResponse> listarDisponiveis(int pagina, int tamanho, String nome, UsuarioAtual solicitante) {
-
+    public Page<AlunoResponse> listarDisponiveis(
+            int pagina,
+            int tamanho,
+            String nome,
+            UsuarioAtual solicitante
+    ) {
         validarDirecao(solicitante);
 
         if (pagina < 0 || tamanho < 1 || tamanho > 100) {
-            throw new RegraNegocioException("Informe página a partir de zero e tamanho entre 1 e 100.");
+            throw new RegraNegocioException(
+                    "Informe página a partir de zero e tamanho entre 1 e 100."
+            );
         }
 
         var paginacao = PageRequest.of(pagina, tamanho, Sort.by("nome", "id"));
-        return alunos.listarDisponiveis(normalizarBuscaPorNome(nome), paginacao).map(AlunoResponse::de);
+
+        return alunos.listarDisponiveis(
+                normalizarBuscaPorNome(nome), paginacao
+        ).map(AlunoResponse::de);
     }
 
     private String normalizarBuscaPorNome(String nome) {
         String busca = nome == null ? "" : nome.strip();
 
         if (busca.length() > 150) {
-            throw new RegraNegocioException("Busque por um nome com até 150 caracteres.");
+            throw new RegraNegocioException(
+                    "Busque por um nome com até 150 caracteres."
+            );
         }
 
         return busca;
     }
 
     private Aluno buscarComBloqueio(UUID alunoId, Long versao) {
-
-        var aluno = alunos.buscarPorIdComBloqueio(alunoId).orElseThrow(AlunoNaoEncontradoException::new);
+        var aluno = alunos.buscarPorIdComBloqueio(alunoId)
+                .orElseThrow(AlunoNaoEncontradoException::new);
 
         if (versao == null || !Objects.equals(aluno.getVersao(), versao)) {
             throw new ConflitoVersaoException();
@@ -167,31 +229,33 @@ public class AlunoService {
 
     private String validarDados(String nome, LocalDate dataNascimento) {
         if (nome == null || nome.isBlank()) {
-
             throw new RegraNegocioException("Informe o nome do aluno.");
         }
 
         String nomeNormalizado = nome.strip();
 
         if (nomeNormalizado.length() > 150) {
-            throw new RegraNegocioException("O nome deve possuir no máximo 150 caracteres.");
+            throw new RegraNegocioException(
+                    "O nome deve possuir no máximo 150 caracteres."
+            );
         }
 
         if (dataNascimento == null || dataNascimento.isAfter(LocalDate.now(clock))) {
-
-            throw new RegraNegocioException("Informe uma data de nascimento válida, que não esteja no futuro.");
+            throw new RegraNegocioException(
+                    "Informe uma data de nascimento válida, que não esteja no futuro."
+            );
         }
 
         return nomeNormalizado;
     }
 
     private void validarDirecao(UsuarioAtual solicitante) {
-
         if (solicitante == null || solicitante.perfil() != Perfil.DIRECAO) {
             throw acessoNegado();
         }
 
-        var diretor = usuarios.findById(solicitante.id()).orElseThrow(this::acessoNegado);
+        var diretor = usuarios.findById(solicitante.id())
+                .orElseThrow(this::acessoNegado);
 
         if (!diretor.isAtivo() || diretor.getPerfil() != Perfil.DIRECAO) {
             throw acessoNegado();
